@@ -13,6 +13,8 @@ public class DatabaseService
             FileSystem.AppDataDirectory,
             "designacoes.db3");
 
+        // campo temporário para não salvar os arquivos
+
         if (File.Exists(dbPath))
         {
             File.Delete(dbPath);
@@ -24,6 +26,7 @@ public class DatabaseService
         _database.CreateTableAsync<Parte>().Wait();
         _database.CreateTableAsync<ProgramaSemanal>().Wait();
         _database.CreateTableAsync<Designacao>().Wait();
+        _database.CreateTableAsync<ParticipanteParte>().Wait();
     }
 
     // PARTICIPANTES
@@ -81,5 +84,30 @@ public class DatabaseService
         return _database.Table<Designacao>()
             .OrderByDescending(x => x.DataSemana)
             .ToListAsync();
+    }
+
+    public async Task<Participante?> GetParticipantePorNomeAsync(string nome)
+    {
+        return await _database.Table<Participante>()
+            .Where(x => x.Nome == nome)
+            .FirstOrDefaultAsync();
+    }
+
+    public Task<int> SalvarParticipanteParteAsync(
+    ParticipanteParte participanteParte)
+    {
+        return _database.InsertAsync(participanteParte);
+    }
+
+    public Task<List<ParticipanteParte>> GetParticipantePartesAsync()
+    {
+        return _database.Table<ParticipanteParte>()
+            .ToListAsync();
+    }
+
+    public Task<int> ExcluirParticipanteParteAsync(
+    ParticipanteParte participanteParte)
+    {
+        return _database.DeleteAsync(participanteParte);
     }
 }

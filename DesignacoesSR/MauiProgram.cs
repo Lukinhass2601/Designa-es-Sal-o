@@ -26,6 +26,7 @@ namespace DesignacoesSR
             builder.Services.AddSingleton<HistoricoPage>();
             builder.Services.AddSingleton<ParticipantesPage>();
             builder.Services.AddSingleton<PartesPage>();
+            builder.Services.AddSingleton<HabilitacoesPage>();
 
             return builder.Build();
         }

@@ -10,4 +10,6 @@ public class Participante
     public string Nome { get; set; } = string.Empty;
 
     public bool Ativo { get; set; } = true;
+
+    public DateTime? UltimaParticipacao { get; set; }
 }

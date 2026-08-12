@@ -36,7 +36,8 @@ public partial class DesignacoesPage : ContentPage
         }
 
         var participantesSorteados = participantes
-            .OrderBy(x => Guid.NewGuid())
+            .OrderBy(x => x.UltimaParticipacao)
+            .ThenBy(x => Guid.NewGuid())
             .ToList();
 
         List<DesignacaoResultado> resultado = new();
@@ -71,6 +72,19 @@ public partial class DesignacoesPage : ContentPage
                     Parte = item.Parte,
                     Participante = item.Participante
                 });
+
+            var participante =
+                await _database.GetParticipantePorNomeAsync(
+                    item.Participante);
+
+            if (participante != null)
+            {
+                participante.UltimaParticipacao =
+                    dtSemana.Date;
+
+                await _database.AtualizarParticipanteAsync(
+                    participante);
+            }
         }
 
         await DisplayAlert(

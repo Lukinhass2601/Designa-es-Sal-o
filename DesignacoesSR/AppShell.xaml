@@ -28,6 +28,10 @@
     Title="Partes"
     ContentTemplate="{DataTemplate pages:PartesPage}" />
 
+        <ShellContent
+    Title="Habilitações"
+    ContentTemplate="{DataTemplate pages:HabilitacoesPage}" />
+
     </TabBar>
 
 </Shell>
