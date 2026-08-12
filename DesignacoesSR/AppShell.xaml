@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<Shell
+    x:Class="DesignacoesSR.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:pages="clr-namespace:DesignacoesSR.Pages">
+
+    <TabBar>
+
+        <ShellContent
+            Title="Cadastros"
+            ContentTemplate="{DataTemplate pages:CadastroPage}" />
+
+        <ShellContent
+            Title="Designações"
+            ContentTemplate="{DataTemplate pages:DesignacoesPage}" />
+
+        <ShellContent
+            Title="Histórico"
+            ContentTemplate="{DataTemplate pages:HistoricoPage}" />
+
+        <ShellContent
+    Title="Participantes"
+    ContentTemplate="{DataTemplate pages:ParticipantesPage}" />
+
+        <ShellContent
+    Title="Partes"
+    ContentTemplate="{DataTemplate pages:PartesPage}" />
+
+    </TabBar>
+
+</Shell>

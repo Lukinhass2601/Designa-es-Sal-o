@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DesignacoesSR.Pages.HistoricoPage"
+    Title="Histórico">
+
+    <VerticalStackLayout Padding="20">
+
+        <CollectionView x:Name="listaHistorico">
+
+            <CollectionView.ItemTemplate>
+
+                <DataTemplate>
+
+                    <Frame Margin="5" Padding="10">
+
+                        <VerticalStackLayout>
+
+                            <Label
+                                FontAttributes="Bold"
+                                Text="{Binding DataSemanaFormatada}" />
+
+                            <Label
+                                Text="{Binding Parte}" />
+
+                            <Label
+                                Text="{Binding Participante}" />
+
+                        </VerticalStackLayout>
+
+                    </Frame>
+
+                </DataTemplate>
+
+            </CollectionView.ItemTemplate>
+
+        </CollectionView>
+
+    </VerticalStackLayout>
+
+</ContentPage>

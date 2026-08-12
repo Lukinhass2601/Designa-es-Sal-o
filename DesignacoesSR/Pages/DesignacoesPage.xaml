@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DesignacoesSR.Pages.DesignacoesPage"
+    Title="Designações">
+
+    <VerticalStackLayout
+    Padding="20"
+    Spacing="15">
+
+        <DatePicker
+        x:Name="dtSemana"
+        Format="dd/MM/yyyy"/>
+
+        <Button
+    Text="Visualizar Sorteio"
+    Clicked="VisualizarDesignacoes_Clicked"/>
+
+        <Button
+    x:Name="btnSalvarPrograma"
+    Text="Salvar Programa"
+    Clicked="SalvarPrograma_Clicked"
+    IsEnabled="False"/>
+
+        <CollectionView x:Name="listaDesignacoes">
+
+            
+
+            <CollectionView.ItemTemplate>
+
+                <DataTemplate>
+
+                    <Frame
+                        Margin="5"
+                        Padding="10">
+
+                        <VerticalStackLayout>
+
+                            <Label
+                                FontAttributes="Bold"
+                                Text="{Binding Parte}" />
+
+                            <Label
+                                Text="{Binding Participante}" />
+
+                        </VerticalStackLayout>
+
+                    </Frame>
+
+                </DataTemplate>
+
+            </CollectionView.ItemTemplate>
+
+        </CollectionView>
+
+    </VerticalStackLayout>
+
+</ContentPage>
