@@ -29,6 +29,11 @@
                             Clicked="EditarParticipante_Clicked"/>
 
                         <Button
+    Text="Habilitações"
+    CommandParameter="{Binding .}"
+    Clicked="HabilitacoesParticipante_Clicked"/>
+
+                        <Button
                             Text="Excluir"
                             CommandParameter="{Binding .}"
                             Clicked="ExcluirParticipante_Clicked"/>

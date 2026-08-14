@@ -9,6 +9,8 @@ public partial class HabilitacoesPage : ContentPage
 
     private List<ParteHabilitacao> _partes = new();
 
+    public int ParticipanteSelecionadoId { get; set; }
+
     public HabilitacoesPage(DatabaseService database)
     {
         InitializeComponent();
@@ -39,12 +41,55 @@ public partial class HabilitacoesPage : ContentPage
         }).ToList();
 
         listaPartes.ItemsSource = _partes;
+
+        if (ParticipanteSelecionadoId > 0)
+        {
+            var participanteSelecionado =
+                participantes.FirstOrDefault(
+                    x => x.Id == ParticipanteSelecionadoId);
+
+            if (participanteSelecionado != null)
+            {
+                pickerParticipante.SelectedItem =
+                    participanteSelecionado;
+            }
+        }
     }
 
-    private void pickerParticipante_SelectedIndexChanged(
-        object sender,
-        EventArgs e)
+    private async void pickerParticipante_SelectedIndexChanged(
+    object sender,
+    EventArgs e)
     {
+        if (pickerParticipante.SelectedItem == null)
+            return;
+
+        var participante =
+            (Participante)pickerParticipante.SelectedItem;
+
+        var habilitacoes =
+            await _database
+            .GetHabilitacoesParticipanteAsync(
+                participante.Id);
+
+        foreach (var parte in _partes)
+        {
+            parte.Selecionado = false;
+        }
+
+        foreach (var habilitacao in habilitacoes)
+        {
+            var parte = _partes.FirstOrDefault(
+                x => x.ParteId ==
+                habilitacao.ParteId);
+
+            if (parte != null)
+            {
+                parte.Selecionado = true;
+            }
+        }
+
+        listaPartes.ItemsSource = null;
+        listaPartes.ItemsSource = _partes;
     }
 
     private async void Salvar_Clicked(

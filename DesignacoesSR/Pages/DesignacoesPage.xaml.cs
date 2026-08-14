@@ -16,13 +16,14 @@ public partial class DesignacoesPage : ContentPage
     }
 
     private async void VisualizarDesignacoes_Clicked(
-        object sender,
-        EventArgs e)
+    object sender,
+    EventArgs e)
     {
         var participantes =
-    (await _database.GetParticipantesAsync())
-    .Where(x => x.Ativo)
-    .ToList();
+            (await _database.GetParticipantesAsync())
+            .Where(x => x.Ativo)
+            .ToList();
+
         var partes = await _database.GetPartesAsync();
 
         if (participantes.Count < partes.Count)
@@ -35,16 +36,49 @@ public partial class DesignacoesPage : ContentPage
             return;
         }
 
-        var participantesSorteados = participantes
-            .OrderBy(x => x.UltimaParticipacao)
-            .ThenBy(x => Guid.NewGuid())
-            .ToList();
-
         List<DesignacaoResultado> resultado = new();
+
+        var participantesJaUsados = new List<int>();
 
         foreach (var parte in partes)
         {
-            var participante = participantesSorteados.First();
+            var participantesHabilitados =
+                await _database.GetParticipantesPorParteAsync(
+                    parte.Id);
+
+            var participantesOrdenados =
+                new List<(Participante Participante, int Quantidade)>();
+            foreach (var participanteAtual in participantesHabilitados)
+            {
+                var quantidade =
+                    await _database.GetQuantidadeDesignacoesAsync(
+                        parte.Nome,
+                        participanteAtual.Nome);
+
+                participantesOrdenados.Add(
+                    (participanteAtual, quantidade));
+            }
+
+            participantesHabilitados =
+                participantesOrdenados
+                .OrderBy(x => x.Quantidade)
+                .ThenBy(x => Guid.NewGuid())
+                .Select(x => x.Participante)
+                .Where(x => !participantesJaUsados.Contains(x.Id))
+                .ToList();
+
+            if (!participantesHabilitados.Any())
+            {
+                resultado.Add(new DesignacaoResultado
+                {
+                    Parte = parte.Nome,
+                    Participante = "SEM HABILITADO"
+                });
+
+                continue;
+            }
+
+            var participante = participantesHabilitados.First();
 
             resultado.Add(new DesignacaoResultado
             {
@@ -52,11 +86,13 @@ public partial class DesignacoesPage : ContentPage
                 Participante = participante.Nome
             });
 
-            participantesSorteados.Remove(participante);
+            participantesJaUsados.Add(participante.Id);
         }
+
         _ultimoResultado = resultado;
 
         btnSalvarPrograma.IsEnabled = true;
+
         listaDesignacoes.ItemsSource = resultado;
     }
     private async void SalvarPrograma_Clicked(

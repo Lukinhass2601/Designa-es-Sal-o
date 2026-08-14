@@ -110,4 +110,63 @@ public class DatabaseService
     {
         return _database.DeleteAsync(participanteParte);
     }
+
+    public async Task RemoverHabilitacoesParticipanteAsync(
+    int participanteId)
+    {
+        var registros = await _database.Table<ParticipanteParte>()
+            .Where(x => x.ParticipanteId == participanteId)
+            .ToListAsync();
+
+        foreach (var registro in registros)
+        {
+            await _database.DeleteAsync(registro);
+        }
+    }
+
+    public Task<List<ParticipanteParte>>
+    GetHabilitacoesParticipanteAsync(
+        int participanteId)
+    {
+        return _database.Table<ParticipanteParte>()
+            .Where(x => x.ParticipanteId == participanteId)
+            .ToListAsync();
+    }
+
+    public async Task<List<Participante>> GetParticipantesPorParteAsync(
+    int parteId)
+    {
+        var habilitacoes =
+            await _database.Table<ParticipanteParte>()
+            .Where(x => x.ParteId == parteId)
+            .ToListAsync();
+
+        var participantes = new List<Participante>();
+
+        foreach (var habilitacao in habilitacoes)
+        {
+            var participante =
+                await _database.Table<Participante>()
+                .Where(x => x.Id == habilitacao.ParticipanteId)
+                .FirstOrDefaultAsync();
+
+            if (participante != null && participante.Ativo)
+            {
+                participantes.Add(participante);
+            }
+        }
+
+        return participantes;
+    }
+
+    public async Task<int> GetQuantidadeDesignacoesAsync(
+    string parte,
+    string participante)
+    {
+        return await _database.Table<Designacao>()
+            .Where(x =>
+                x.Parte == parte &&
+                x.Participante == participante)
+            .CountAsync();
+    }
 }
