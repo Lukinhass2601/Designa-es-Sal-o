@@ -15,10 +15,10 @@ public class DatabaseService
 
         // campo temporário para não salvar os arquivos
 
-        if (File.Exists(dbPath))
-        {
-            File.Delete(dbPath);
-        }
+        //if (File.Exists(dbPath))
+        //{
+        //    File.Delete(dbPath);
+        //}
 
         _database = new SQLiteAsyncConnection(dbPath);
 
@@ -168,5 +168,20 @@ public class DatabaseService
                 x.Parte == parte &&
                 x.Participante == participante)
             .CountAsync();
+    }
+
+    public async Task<List<string>>
+    GetParticipantesJaUsadosNaParteAsync(
+        string parte)
+    {
+        var designacoes =
+            await _database.Table<Designacao>()
+            .Where(x => x.Parte == parte)
+            .ToListAsync();
+
+        return designacoes
+            .Select(x => x.Participante)
+            .Distinct()
+            .ToList();
     }
 }

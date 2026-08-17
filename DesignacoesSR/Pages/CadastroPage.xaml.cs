@@ -21,10 +21,13 @@ public partial class CadastroPage : ContentPage
             return;
 
         await _database.SalvarParticipanteAsync(
-            new Participante
-            {
-                Nome = txtParticipante.Text
-            });
+new Participante
+{
+    Nome = txtParticipante.Text,
+    Sexo = pickerSexoParticipante.SelectedIndex == 0
+        ? "M"
+        : "F"
+});
 
         txtParticipante.Text = string.Empty;
 
@@ -44,7 +47,15 @@ public partial class CadastroPage : ContentPage
         await _database.SalvarParteAsync(
             new Parte
             {
-                Nome = txtParte.Text
+                Nome = txtParte.Text,
+
+                QuantidadeParticipantes =
+        pickerQuantidade.SelectedIndex == 1 ? 2 : 1,
+
+                SexoPermitido =
+        pickerSexoParte.SelectedIndex == 0
+            ? "M"
+            : "F"
             });
 
         txtParte.Text = string.Empty;

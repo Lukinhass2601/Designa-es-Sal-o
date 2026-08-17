@@ -12,33 +12,84 @@
             Padding="20"
             Spacing="15">
 
+            <!-- PARTICIPANTE -->
+
             <Label
                 Text="Novo Participante"
                 FontSize="20"
-                FontAttributes="Bold"/>
+                FontAttributes="Bold" />
 
             <Entry
                 x:Name="txtParticipante"
-                Placeholder="Nome do participante"/>
+                Placeholder="Nome do participante" />
+
+            <Label Text="Sexo" />
+
+            <Picker
+                x:Name="pickerSexoParticipante"
+                Title="Selecione o sexo">
+
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>Masculino</x:String>
+                        <x:String>Feminino</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+
+            </Picker>
 
             <Button
                 Text="Salvar Participante"
-                Clicked="SalvarParticipante_Clicked"/>
+                Clicked="SalvarParticipante_Clicked" />
 
-            <BoxView HeightRequest="1"/>
+            <BoxView
+                HeightRequest="1"
+                BackgroundColor="Gray" />
+
+            <!-- PARTE -->
 
             <Label
                 Text="Nova Parte"
                 FontSize="20"
-                FontAttributes="Bold"/>
+                FontAttributes="Bold" />
 
             <Entry
                 x:Name="txtParte"
-                Placeholder="Nome da parte"/>
+                Placeholder="Nome da parte" />
+
+            <Label Text="Quantidade de Participantes" />
+
+            <Picker
+                x:Name="pickerQuantidade"
+                Title="Selecione">
+
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>1</x:String>
+                        <x:String>2</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+
+            </Picker>
+
+            <Label Text="Sexo Permitido" />
+
+            <Picker
+                x:Name="pickerSexoParte"
+                Title="Selecione">
+
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>Masculino</x:String>
+                        <x:String>Feminino</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+
+            </Picker>
 
             <Button
                 Text="Salvar Parte"
-                Clicked="SalvarParte_Clicked"/>
+                Clicked="SalvarParte_Clicked" />
 
         </VerticalStackLayout>
 

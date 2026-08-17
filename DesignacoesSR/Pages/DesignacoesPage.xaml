@@ -19,6 +19,10 @@
     Clicked="VisualizarDesignacoes_Clicked"/>
 
         <Button
+    Text="Gerar Novo Sorteio"
+    Clicked="GerarNovoSorteio_Clicked"/>
+
+        <Button
     x:Name="btnSalvarPrograma"
     Text="Salvar Programa"
     Clicked="SalvarPrograma_Clicked"
@@ -39,11 +43,14 @@
                         <VerticalStackLayout>
 
                             <Label
-                                FontAttributes="Bold"
-                                Text="{Binding Parte}" />
+        FontAttributes="Bold"
+        Text="{Binding Parte}" />
 
                             <Label
-                                Text="{Binding Participante}" />
+        Text="{Binding Participante1}" />
+
+                            <Label
+        Text="{Binding Participante2}" />
 
                         </VerticalStackLayout>
 

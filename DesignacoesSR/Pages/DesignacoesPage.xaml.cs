@@ -24,21 +24,13 @@ public partial class DesignacoesPage : ContentPage
             .Where(x => x.Ativo)
             .ToList();
 
-        var partes = await _database.GetPartesAsync();
-
-        if (participantes.Count < partes.Count)
-        {
-            await DisplayAlert(
-                "Aviso",
-                "Existem menos participantes do que partes.",
-                "OK");
-
-            return;
-        }
+        var partes =
+            await _database.GetPartesAsync();
 
         List<DesignacaoResultado> resultado = new();
 
-        var participantesJaUsados = new List<int>();
+        var participantesJaUsados =
+            new List<int>();
 
         foreach (var parte in partes)
         {
@@ -46,47 +38,91 @@ public partial class DesignacoesPage : ContentPage
                 await _database.GetParticipantesPorParteAsync(
                     parte.Id);
 
-            var participantesOrdenados =
-                new List<(Participante Participante, int Quantidade)>();
-            foreach (var participanteAtual in participantesHabilitados)
-            {
-                var quantidade =
-                    await _database.GetQuantidadeDesignacoesAsync(
-                        parte.Nome,
-                        participanteAtual.Nome);
-
-                participantesOrdenados.Add(
-                    (participanteAtual, quantidade));
-            }
+            //participantesHabilitados =
+            //    participantesHabilitados
+            //    .Where(x => x.Ativo)
+            //    .Where(x => x.Sexo == parte.SexoPermitido)
+            //    .Where(x => !participantesJaUsados.Contains(x.Id))
+            //    .OrderBy(x => x.UltimaParticipacao ?? DateTime.MinValue)
+            //    .Take(5)
+            //    .OrderBy(x => Guid.NewGuid())
+            //    .ToList();
 
             participantesHabilitados =
-                participantesOrdenados
-                .OrderBy(x => x.Quantidade)
-                .ThenBy(x => Guid.NewGuid())
-                .Select(x => x.Participante)
-                .Where(x => !participantesJaUsados.Contains(x.Id))
-                .ToList();
+    participantesHabilitados
+    .Where(x => x.Ativo)
+    .Where(x => x.Sexo == parte.SexoPermitido)
+    .Where(x => !participantesJaUsados.Contains(x.Id))
+    .OrderBy(x => x.UltimaParticipacao ?? DateTime.MinValue)
+    .Take(Math.Min(5, participantesHabilitados.Count))
+    .OrderBy(x => Guid.NewGuid())
+    .ToList();
 
-            if (!participantesHabilitados.Any())
+            if (parte.QuantidadeParticipantes == 1)
             {
-                resultado.Add(new DesignacaoResultado
+                if (!participantesHabilitados.Any())
                 {
-                    Parte = parte.Nome,
-                    Participante = "SEM HABILITADO"
-                });
+                    resultado.Add(
+                        new DesignacaoResultado
+                        {
+                            Parte = parte.Nome,
+                            Participante1 = "SEM HABILITADO"
+                        });
 
-                continue;
+                    continue;
+                }
+
+                var participante1 =
+                    participantesHabilitados.First();
+
+                resultado.Add(
+                    new DesignacaoResultado
+                    {
+                        Parte = parte.Nome,
+                        Participante1 = participante1.Nome
+                    });
+
+                participantesJaUsados.Add(
+                    participante1.Id);
             }
-
-            var participante = participantesHabilitados.First();
-
-            resultado.Add(new DesignacaoResultado
+            else
             {
-                Parte = parte.Nome,
-                Participante = participante.Nome
-            });
+                if (participantesHabilitados.Count < 2)
+                {
+                    resultado.Add(
+                        new DesignacaoResultado
+                        {
+                            Parte = parte.Nome,
+                            Participante1 =
+                                "FALTAM PARTICIPANTES"
+                        });
 
-            participantesJaUsados.Add(participante.Id);
+                    continue;
+                }
+
+                var participante1 =
+                    participantesHabilitados[0];
+
+                var participante2 =
+                    participantesHabilitados[1];
+
+                resultado.Add(
+                    new DesignacaoResultado
+                    {
+                        Parte = parte.Nome,
+                        Participante1 =
+                            participante1.Nome,
+
+                        Participante2 =
+                            participante2.Nome
+                    });
+
+                participantesJaUsados.Add(
+                    participante1.Id);
+
+                participantesJaUsados.Add(
+                    participante2.Id);
+            }
         }
 
         _ultimoResultado = resultado;
@@ -106,12 +142,15 @@ public partial class DesignacoesPage : ContentPage
                 {
                     DataSemana = dtSemana.Date.Value,
                     Parte = item.Parte,
-                    Participante = item.Participante
+                    Participante =
+    string.IsNullOrWhiteSpace(item.Participante2)
+        ? item.Participante1
+        : $"{item.Participante1} e {item.Participante2}"
                 });
 
             var participante =
-                await _database.GetParticipantePorNomeAsync(
-                    item.Participante);
+    await _database.GetParticipantePorNomeAsync(
+        item.Participante1);
 
             if (participante != null)
             {
@@ -129,5 +168,12 @@ public partial class DesignacoesPage : ContentPage
             "OK");
 
         btnSalvarPrograma.IsEnabled = false;
+    }
+
+    private void GerarNovoSorteio_Clicked(
+    object sender,
+    EventArgs e)
+    {
+        VisualizarDesignacoes_Clicked(sender, e);
     }
 }

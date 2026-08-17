@@ -9,7 +9,11 @@ public class Participante
 
     public string Nome { get; set; } = string.Empty;
 
+    public string Sexo { get; set; } = "M";
+
     public bool Ativo { get; set; } = true;
 
     public DateTime? UltimaParticipacao { get; set; }
+
+    
 }
