@@ -1,7 +1,8 @@
 ﻿using DesignacoesSR.Models;
 using MiniExcelLibs;
 using System.Collections;
-using System.Dynamic;
+using System.Globalization;
+using System.Text;
 
 namespace DesignacoesSR.Services;
 
@@ -20,42 +21,47 @@ public class ImportacaoExcelService
     {
         var resultado = new ResultadoImportacao();
 
-        var linhas =
-            await MiniExcel.QueryAsync(
-                arquivoExcel,
-                useHeaderRow: true,
-                sheetName: "Importacao");
+        var linhas = await MiniExcel.QueryAsync(
+            arquivoExcel,
+            useHeaderRow: true,
+            sheetName: "Importacao");
 
         foreach (var linha in linhas)
         {
-            var dados =
-                ConverterParaDicionario(linha);
+            var dados = ConverterParaDicionario(linha);
 
-            var nome = ObterTexto(dados, "Nome");
+            var nome = ObterTexto(
+                dados,
+                "Nome");
+
+            var sexoPlanilha = ObterTexto(
+                dados,
+                "Sexo");
+
+            var ativoPlanilha = ObterTexto(
+                dados,
+                "Ativo");
 
             if (string.IsNullOrWhiteSpace(nome))
-                continue;
-
-            var sexoPlanilha =
-                ObterTexto(dados, "Sexo");
-
-            var ativoPlanilha =
-                ObterTexto(dados, "Ativo");
-
-            var sexo =
-                ConverterSexo(sexoPlanilha);
-
-            if (string.IsNullOrWhiteSpace(sexo))
             {
-                resultado.Avisos.Add(
-                    $"{nome}: sexo inválido.");
-
                 resultado.ParticipantesIgnorados++;
                 continue;
             }
 
-            var participante =
-                await _database
+            var sexo = ConverterSexo(
+                sexoPlanilha);
+
+            if (string.IsNullOrWhiteSpace(sexo))
+            {
+                resultado.ParticipantesIgnorados++;
+
+                resultado.Avisos.Add(
+                    $"{nome}: sexo não reconhecido.");
+
+                continue;
+            }
+
+            var participante = await _database
                 .GetParticipantePorNomeNormalizadoAsync(
                     nome);
 
@@ -67,7 +73,7 @@ public class ImportacaoExcelService
                     Sexo = sexo,
                     Ativo = ConverterSimNao(
                         ativoPlanilha,
-                        valorPadrao: true)
+                        true)
                 };
 
                 await _database
@@ -78,12 +84,14 @@ public class ImportacaoExcelService
             }
             else
             {
+                participante.Nome = FormatarNome(
+                    nome);
+
                 participante.Sexo = sexo;
 
-                participante.Ativo =
-                    ConverterSimNao(
-                        ativoPlanilha,
-                        participante.Ativo);
+                participante.Ativo = ConverterSimNao(
+                    ativoPlanilha,
+                    participante.Ativo);
 
                 await _database
                     .AtualizarParticipanteAsync(
@@ -92,84 +100,238 @@ public class ImportacaoExcelService
                 resultado.ParticipantesAtualizados++;
             }
 
-            var categoriasHabilitadas =
-                ObterCategoriasHabilitadas(dados);
-
-            foreach (var categoria in categoriasHabilitadas)
-            {
-                var nomesPartes =
-                    ObterPartesCorrespondentes(categoria);
-
-                foreach (var nomeParte in nomesPartes)
-                {
-                    var parte =
-                        await _database
-                        .GetPartePorNomeNormalizadoAsync(
-                            nomeParte);
-
-                    if (parte == null)
-                    {
-                        resultado.PartesNaoEncontradas++;
-
-                        resultado.Avisos.Add(
-                            $"{participante.Nome}: " +
-                            $"a parte '{nomeParte}' não foi encontrada.");
-
-                        continue;
-                    }
-
-                    var jaExiste =
-                        await _database
-                        .ParticipanteParteExisteAsync(
-                            participante.Id,
-                            parte.Id);
-
-                    if (jaExiste)
-                        continue;
-
-                    await _database
-                        .SalvarParticipanteParteAsync(
-                            new ParticipanteParte
-                            {
-                                ParticipanteId =
-                                    participante.Id,
-
-                                ParteId =
-                                    parte.Id
-                            });
-
-                    resultado.HabilitacoesAdicionadas++;
-                }
-            }
+            await ImportarHabilitacoesAsync(
+                participante,
+                dados,
+                resultado);
         }
 
         return resultado;
     }
 
-    private static Dictionary<string, object?>
-        ConverterParaDicionario(dynamic linha)
+    private async Task ImportarHabilitacoesAsync(
+        Participante participante,
+        Dictionary<string, object?> dados,
+        ResultadoImportacao resultado)
     {
-        if (linha is IDictionary<string, object> dados)
+        await _database
+            .RemoverHabilitacoesParticipanteAsync(
+                participante.Id);
+
+        var mapeamentos = ObterMapeamentos();
+
+        foreach (var mapeamento in mapeamentos)
         {
-            return dados.ToDictionary(
-                item => item.Key,
-                item => (object?)item.Value,
-                StringComparer.OrdinalIgnoreCase);
+            var valorPlanilha = ObterTexto(
+                dados,
+                mapeamento.ColunaPlanilha);
+
+            var habilitado = ConverterSimNao(
+                valorPlanilha,
+                false);
+
+            if (!habilitado)
+                continue;
+
+            var parte = await LocalizarParteAsync(
+                mapeamento.NomesPossiveisParte);
+
+            if (parte == null)
+            {
+                resultado.PartesNaoEncontradas++;
+
+                resultado.Avisos.Add(
+                    $"{participante.Nome}: " +
+                    $"não foi encontrada uma parte para " +
+                    $"a coluna '{mapeamento.ColunaPlanilha}'.");
+
+                continue;
+            }
+
+            var relacionamentoExiste = await _database
+                .ParticipanteParteExisteAsync(
+                    participante.Id,
+                    parte.Id);
+
+            if (relacionamentoExiste)
+                continue;
+
+            await _database
+                .SalvarParticipanteParteAsync(
+                    new ParticipanteParte
+                    {
+                        ParticipanteId = participante.Id,
+                        ParteId = parte.Id
+                    });
+
+            resultado.HabilitacoesAdicionadas++;
+        }
+    }
+
+    private async Task<Parte?> LocalizarParteAsync(
+        IEnumerable<string> nomesPossiveis)
+    {
+        foreach (var nomeParte in nomesPossiveis)
+        {
+            var parte = await _database
+                .GetPartePorNomeNormalizadoAsync(
+                    nomeParte);
+
+            if (parte != null)
+                return parte;
         }
 
-        if (linha is IDictionary<string, object?> dadosNullable)
-        {
-            return new Dictionary<string, object?>(
-                dadosNullable,
-                StringComparer.OrdinalIgnoreCase);
-        }
+        return null;
+    }
 
+    private static List<MapeamentoHabilitacao>
+        ObterMapeamentos()
+    {
+        return new List<MapeamentoHabilitacao>
+        {
+            new MapeamentoHabilitacao
+            {
+                ColunaPlanilha = "Leitura da Bíblia",
+
+                NomesPossiveisParte = new[]
+                {
+                    "Leitura da Bíblia",
+                    "Leitura Bíblia",
+                    "Leitura Bíblica"
+                }
+            },
+
+            new MapeamentoHabilitacao
+            {
+                ColunaPlanilha = "DISCURSO",
+
+                NomesPossiveisParte = new[]
+                {
+                    "Discurso",
+                    "Explicando suas Crenças"
+                }
+            },
+
+            new MapeamentoHabilitacao
+            {
+                ColunaPlanilha = "Iniciando Conversas",
+
+                NomesPossiveisParte = new[]
+                {
+                    "Iniciando Conversas",
+                    "Iniciar Conversas",
+                    "Começar Conversas"
+                }
+            },
+
+            new MapeamentoHabilitacao
+            {
+                ColunaPlanilha = "Fazendo Discípulos",
+
+                NomesPossiveisParte = new[]
+                {
+                    "Fazendo Discípulos",
+                    "Fazer Discípulos"
+                }
+            },
+
+            new MapeamentoHabilitacao
+            {
+                ColunaPlanilha = "Cultivando o interesse",
+
+                NomesPossiveisParte = new[]
+                {
+                    "Cultivando o Interesse",
+                    "Manter o Interesse"
+                }
+            },
+
+            new MapeamentoHabilitacao
+            {
+                ColunaPlanilha = "PRESIDENTE",
+
+                NomesPossiveisParte = new[]
+                {
+                    "Presidente"
+                }
+            },
+
+            new MapeamentoHabilitacao
+            {
+                ColunaPlanilha =
+                    "Estudo bíblico de congregação",
+
+                NomesPossiveisParte = new[]
+                {
+                    "Estudo Bíblico de Congregação",
+                    "Estudo Bíblico",
+                    "Estudo"
+                }
+            },
+
+            new MapeamentoHabilitacao
+            {
+                ColunaPlanilha = "TESOUROS",
+
+                NomesPossiveisParte = new[]
+                {
+                    "Tesouros",
+                    "Tesouros da Palavra de Deus"
+                }
+            },
+
+            new MapeamentoHabilitacao
+            {
+                ColunaPlanilha = "Joias espirituais",
+
+                NomesPossiveisParte = new[]
+                {
+                    "Joias Espirituais",
+                    "Joias",
+                    "Pérolas Espirituais"
+                }
+            }
+        };
+    }
+
+    private static Dictionary<string, object?>
+        ConverterParaDicionario(
+            object linha)
+    {
         var resultado =
             new Dictionary<string, object?>(
                 StringComparer.OrdinalIgnoreCase);
 
-        foreach (var propriedade in
-                 linha.GetType().GetProperties())
+        if (linha is IDictionary<string, object> dados)
+        {
+            foreach (var item in dados)
+            {
+                resultado[item.Key] = item.Value;
+            }
+
+            return resultado;
+        }
+
+        if (linha is IDictionary dicionario)
+        {
+            foreach (DictionaryEntry item in dicionario)
+            {
+                var chave = item.Key?.ToString();
+
+                if (string.IsNullOrWhiteSpace(chave))
+                    continue;
+
+                resultado[chave] = item.Value;
+            }
+
+            return resultado;
+        }
+
+        var propriedades = linha
+            .GetType()
+            .GetProperties();
+
+        foreach (var propriedade in propriedades)
         {
             resultado[propriedade.Name] =
                 propriedade.GetValue(linha);
@@ -182,131 +344,33 @@ public class ImportacaoExcelService
         Dictionary<string, object?> dados,
         string coluna)
     {
-        var item =
-            dados.FirstOrDefault(
-                x => string.Equals(
-                    x.Key.Trim(),
-                    coluna,
-                    StringComparison.OrdinalIgnoreCase));
+        var colunaNormalizada = NormalizarTexto(
+            coluna);
 
-        return item.Value?.ToString()?.Trim()
-               ?? string.Empty;
-    }
-
-    private static List<string>
-        ObterCategoriasHabilitadas(
-            Dictionary<string, object?> dados)
-    {
-        var categorias =
-            new[]
-            {
-                "LEITURA BIBLIA",
-                "DISCURSO",
-                "ESTUDANTE",
-                "AJUDANTE",
-                "PRESIDENTE",
-                "ESTUDO",
-                "TESOUROS",
-                "JOIAS"
-            };
-
-        var selecionadas = new List<string>();
-
-        foreach (var categoria in categorias)
+        foreach (var item in dados)
         {
-            var valor =
-                ObterTexto(dados, categoria);
+            var cabecalhoNormalizado =
+                NormalizarTexto(item.Key);
 
-            if (ConverterSimNao(
-                    valor,
-                    valorPadrao: false))
+            if (cabecalhoNormalizado !=
+                colunaNormalizada)
             {
-                selecionadas.Add(categoria);
+                continue;
             }
+
+            return item.Value?
+                       .ToString()?
+                       .Trim()
+                   ?? string.Empty;
         }
 
-        return selecionadas;
-    }
-
-    private static IEnumerable<string>
-        ObterPartesCorrespondentes(
-            string categoria)
-    {
-        /*
-         * Ajuste os nomes abaixo para que fiquem
-         * exatamente iguais aos nomes cadastrados
-         * na página Partes do aplicativo.
-         */
-
-        var mapeamento =
-            new Dictionary<string, string[]>(
-                StringComparer.OrdinalIgnoreCase)
-            {
-                ["LEITURA BIBLIA"] =
-                    new[]
-                    {
-                        "Leitura Bíblica"
-                    },
-
-                ["DISCURSO"] =
-                    new[]
-                    {
-                        "Discurso"
-                    },
-
-                ["PRESIDENTE"] =
-                    new[]
-                    {
-                        "Presidente"
-                    },
-
-                ["ESTUDO"] =
-                    new[]
-                    {
-                        "Estudo"
-                    },
-
-                ["TESOUROS"] =
-                    new[]
-                    {
-                        "Tesouros da Palavra de Deus"
-                    },
-
-                ["JOIAS"] =
-                    new[]
-                    {
-                        "Joias Espirituais"
-                    },
-
-                ["ESTUDANTE"] =
-                    new[]
-                    {
-                        "Iniciando Conversas",
-                        "Cultivando o Interesse",
-                        "Fazendo Discípulos"
-                    },
-
-                ["AJUDANTE"] =
-                    new[]
-                    {
-                        "Iniciando Conversas",
-                        "Cultivando o Interesse",
-                        "Fazendo Discípulos"
-                    }
-            };
-
-        return mapeamento.TryGetValue(
-            categoria,
-            out var partes)
-            ? partes
-            : Array.Empty<string>();
+        return string.Empty;
     }
 
     private static string ConverterSexo(
         string valor)
     {
-        var sexo =
-            valor.Trim().ToUpperInvariant();
+        var sexo = NormalizarTexto(valor);
 
         return sexo switch
         {
@@ -325,8 +389,7 @@ public class ImportacaoExcelService
         if (string.IsNullOrWhiteSpace(valor))
             return valorPadrao;
 
-        var texto =
-            valor.Trim().ToUpperInvariant();
+        var texto = NormalizarTexto(valor);
 
         return texto switch
         {
@@ -335,8 +398,8 @@ public class ImportacaoExcelService
             "TRUE" => true,
             "VERDADEIRO" => true,
             "1" => true,
+            "X" => true,
 
-            "NÃO" => false,
             "NAO" => false,
             "N" => false,
             "FALSE" => false,
@@ -350,14 +413,52 @@ public class ImportacaoExcelService
     private static string FormatarNome(
         string nome)
     {
-        nome =
-            string.Join(
-                " ",
-                nome.Trim()
-                    .Split(
-                        ' ',
-                        StringSplitOptions.RemoveEmptyEntries));
+        return string.Join(
+            " ",
+            nome.Trim()
+                .Split(
+                    ' ',
+                    StringSplitOptions.RemoveEmptyEntries))
+            .ToUpperInvariant();
+    }
 
-        return nome.ToUpperInvariant();
+    private static string NormalizarTexto(
+        string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+            return string.Empty;
+
+        var textoSemEspacosExtras = string.Join(
+            " ",
+            texto.Trim()
+                .Split(
+                    ' ',
+                    StringSplitOptions.RemoveEmptyEntries));
+
+        var textoDecomposto = textoSemEspacosExtras
+            .ToUpperInvariant()
+            .Normalize(
+                NormalizationForm.FormD);
+
+        var caracteresSemAcentos =
+            textoDecomposto.Where(
+                caractere =>
+                    CharUnicodeInfo.GetUnicodeCategory(
+                        caractere) !=
+                    UnicodeCategory.NonSpacingMark);
+
+        return new string(
+                caracteresSemAcentos.ToArray())
+            .Normalize(
+                NormalizationForm.FormC);
+    }
+
+    private class MapeamentoHabilitacao
+    {
+        public string ColunaPlanilha { get; set; } =
+            string.Empty;
+
+        public string[] NomesPossiveisParte { get; set; } =
+            Array.Empty<string>();
     }
 }

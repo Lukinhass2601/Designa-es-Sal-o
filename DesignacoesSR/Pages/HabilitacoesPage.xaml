@@ -6,48 +6,200 @@
     x:Class="DesignacoesSR.Pages.HabilitacoesPage"
     Title="Habilitações">
 
-    <VerticalStackLayout
+    <Grid
         Padding="20"
-        Spacing="15">
+        RowDefinitions="Auto,Auto,Auto,*,Auto"
+        RowSpacing="12">
 
         <Label
-            Text="Participante"
+            Grid.Row="0"
+            Text="Habilitações"
+            FontSize="24"
             FontAttributes="Bold" />
 
-        <Picker
-            x:Name="pickerParticipante"
-            Title="Selecione o participante"
-            SelectedIndexChanged="pickerParticipante_SelectedIndexChanged" />
+        <VerticalStackLayout
+            Grid.Row="1"
+            Spacing="5">
 
-        <CollectionView x:Name="listaPartes">
+            <Label
+                Text="Participante"
+                FontAttributes="Bold" />
+
+            <Picker
+                x:Name="pickerParticipante"
+                Title="Selecione o participante"
+                SelectedIndexChanged="pickerParticipante_SelectedIndexChanged" />
+
+        </VerticalStackLayout>
+
+        <Grid
+            Grid.Row="2"
+            ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="10"
+            Padding="10,5">
+
+            <Label
+                Grid.Column="0"
+                Text="Habilitado"
+                FontSize="12"
+                FontAttributes="Bold"
+                TextColor="Gray" />
+
+            <Label
+                Grid.Column="1"
+                Text="Parte"
+                FontSize="12"
+                FontAttributes="Bold"
+                TextColor="Gray" />
+
+            <Label
+                Grid.Column="2"
+                Text="Ação"
+                FontSize="12"
+                FontAttributes="Bold"
+                TextColor="Gray" />
+
+        </Grid>
+
+        <!--
+            O CollectionView já possui rolagem vertical.
+            Não coloque este CollectionView dentro de um ScrollView.
+        -->
+
+        <CollectionView
+            Grid.Row="3"
+            x:Name="listaPartes"
+            SelectionMode="None"
+            VerticalScrollBarVisibility="Always">
+
+            <CollectionView.EmptyView>
+
+                <VerticalStackLayout
+                    Padding="20"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+
+                    <Label
+                        Text="Nenhuma parte cadastrada."
+                        FontSize="16"
+                        TextColor="Gray"
+                        HorizontalTextAlignment="Center" />
+
+                    <Label
+                        Text="Cadastre as partes base na aba Cadastros."
+                        FontSize="13"
+                        TextColor="Gray"
+                        HorizontalTextAlignment="Center" />
+
+                </VerticalStackLayout>
+
+            </CollectionView.EmptyView>
 
             <CollectionView.ItemTemplate>
 
                 <DataTemplate>
 
-                    <Grid
-                        ColumnDefinitions="*,Auto">
+                    <Border
+            Margin="0,3"
+            Padding="0"
+            BackgroundColor="#F5F5F5"
+            Stroke="#E0E0E0"
+            StrokeThickness="1">
 
-                        <Label
-                            Grid.Column="0"
-                            Text="{Binding Nome}" />
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="6" />
+                        </Border.StrokeShape>
 
-                        <CheckBox
-                            Grid.Column="1"
-                            IsChecked="{Binding Selecionado}" />
+                        <VisualStateManager.VisualStateGroups>
 
-                    </Grid>
+                            <VisualStateGroup Name="CommonStates">
+
+                                <VisualState Name="Normal">
+
+                                    <VisualState.Setters>
+
+                                        <Setter
+                                Property="BackgroundColor"
+                                Value="#F5F5F5" />
+
+                                        <Setter
+                                Property="Stroke"
+                                Value="#E0E0E0" />
+
+                                    </VisualState.Setters>
+
+                                </VisualState>
+
+                                <VisualState Name="PointerOver">
+
+                                    <VisualState.Setters>
+
+                                        <Setter
+                                Property="BackgroundColor"
+                                Value="#E8E0FF" />
+
+                                        <Setter
+                                Property="Stroke"
+                                Value="#5B2BE0" />
+
+                                    </VisualState.Setters>
+
+                                </VisualState>
+
+                            </VisualStateGroup>
+
+                        </VisualStateManager.VisualStateGroups>
+
+                        <Grid
+                Padding="10,7"
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="10">
+
+                            <HorizontalStackLayout
+                    Grid.Column="0"
+                    Spacing="4"
+                    VerticalOptions="Center">
+
+                                <CheckBox
+                        IsChecked="{Binding Selecionado, Mode=TwoWay}"
+                        VerticalOptions="Center" />
+
+                                <Label
+                        Text="{Binding Nome}"
+                        FontSize="15"
+                        VerticalOptions="Center"
+                        LineBreakMode="WordWrap" />
+
+                            </HorizontalStackLayout>
+
+                            <Button
+                    Grid.Column="1"
+                    Text="Excluir"
+                    FontSize="12"
+                    Padding="14,7"
+                    VerticalOptions="Center"
+                    CommandParameter="{Binding .}"
+                    Clicked="ExcluirParte_Clicked" />
+
+                        </Grid>
+
+                    </Border>
 
                 </DataTemplate>
 
             </CollectionView.ItemTemplate>
+            
 
         </CollectionView>
 
         <Button
+            Grid.Row="4"
+            x:Name="btnSalvarHabilitacoes"
             Text="Salvar Habilitações"
-            Clicked="Salvar_Clicked" />
+            Clicked="Salvar_Clicked"
+            IsEnabled="False"
+            Margin="0,8,0,0" />
 
-    </VerticalStackLayout>
+    </Grid>
 
 </ContentPage>

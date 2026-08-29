@@ -9,6 +9,8 @@ public class Designacao
 
     public DateTime DataSemana { get; set; }
 
+    public int ParteId { get; set; }
+
     public string Parte { get; set; } = string.Empty;
 
     public string Participante { get; set; } = string.Empty;

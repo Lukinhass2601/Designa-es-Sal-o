@@ -90,18 +90,22 @@ public partial class DesignacoesPage : ContentPage
                             parteBase.Id);
 
                 participantesHabilitados =
-                    participantesHabilitados
-                        .Where(x => x.Ativo)
-                        .Where(x =>
-                            string.Equals(
-                                x.Sexo,
-                                parteBase.SexoPermitido,
-                                StringComparison.OrdinalIgnoreCase))
-                        .Where(x =>
-                            !participantesJaUsados.Contains(
-                                x.Id))
-                        .OrderBy(x => Guid.NewGuid())
-                        .ToList();
+    participantesHabilitados
+        .Where(x => x.Ativo)
+        .Where(x =>
+            string.Equals(
+                x.Sexo,
+                parteBase.SexoPermitido,
+                StringComparison.OrdinalIgnoreCase))
+        .Where(x =>
+            !participantesJaUsados.Contains(
+                x.Id))
+        .ToList();
+
+                participantesHabilitados =
+                    await OrdenarPorRodizioAsync(
+                        participantesHabilitados,
+                        parteBase.Id);
 
                 var quantidadeNecessaria =
                     parteBase.QuantidadeParticipantes <= 1
@@ -136,30 +140,33 @@ public partial class DesignacoesPage : ContentPage
                 }
 
                 resultado.Add(
-                    new DesignacaoResultado
-                    {
-                        ParteSemanaId =
-                            parteSemana.Id,
+    new DesignacaoResultado
+    {
+        ParteSemanaId =
+            parteSemana.Id,
 
-                        Numero =
-                            parteSemana.Numero,
+        ParteId =
+            parteBase.Id,
 
-                        Parte =
-                            parteSemana.Titulo,
+        Numero =
+            parteSemana.Numero,
 
-                        Descricao =
-                            parteSemana.Descricao,
+        Parte =
+            parteSemana.Titulo,
 
-                        DuracaoMinutos =
-                            parteSemana.DuracaoMinutos,
+        Descricao =
+            parteSemana.Descricao,
 
-                        Participante1 =
-                            participante1.Nome,
+        DuracaoMinutos =
+            parteSemana.DuracaoMinutos,
 
-                        Participante2 =
-                            participante2?.Nome
-                            ?? string.Empty
-                    });
+        Participante1 =
+            participante1.Nome,
+
+        Participante2 =
+            participante2?.Nome
+            ?? string.Empty
+    });
 
                 participantesJaUsados.Add(
                     participante1.Id);
@@ -212,6 +219,8 @@ public partial class DesignacoesPage : ContentPage
         {
             ParteSemanaId =
                 parteSemana.Id,
+
+            ParteId = 0,
 
             Numero =
                 parteSemana.Numero,
@@ -323,17 +332,20 @@ public partial class DesignacoesPage : ContentPage
                           $"{item.Participante2}";
 
                 await _database.SalvarDesignacaoAsync(
-                    new Designacao
-                    {
-                        DataSemana =
-                            dataSemana.Date,
+    new Designacao
+    {
+        DataSemana =
+            dataSemana.Date,
 
-                        Parte =
-                            item.Parte,
+        ParteId =
+            item.ParteId,
 
-                        Participante =
-                            nomesParticipantes
-                    });
+        Parte =
+            item.Parte,
+
+        Participante =
+            nomesParticipantes
+    });
 
                 await AtualizarUltimaParticipacaoAsync(
                     item.Participante1,
@@ -395,5 +407,41 @@ public partial class DesignacoesPage : ContentPage
 
         await _database.AtualizarParticipanteAsync(
             participante);
+    }
+
+    private async Task<List<Participante>>
+    OrdenarPorRodizioAsync(
+        List<Participante> participantes,
+        int parteId)
+    {
+        var candidatos =
+            new List<(Participante Participante, int Quantidade)>();
+
+        foreach (var participante in participantes)
+        {
+            var quantidade =
+                await _database
+                    .GetQuantidadeDesignacoesPorParteAsync(
+                        parteId,
+                        participante.Nome);
+
+            candidatos.Add(
+                (participante, quantidade));
+        }
+
+        if (candidatos.Count == 0)
+        {
+            return new List<Participante>();
+        }
+
+        var menorQuantidade =
+            candidatos.Min(x => x.Quantidade);
+
+        return candidatos
+            .Where(x =>
+                x.Quantidade == menorQuantidade)
+            .OrderBy(x => Guid.NewGuid())
+            .Select(x => x.Participante)
+            .ToList();
     }
 }

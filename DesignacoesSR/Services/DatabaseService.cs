@@ -498,5 +498,76 @@ public class DatabaseService
         return quantidadeExcluida;
     }
 
+    public async Task<int> GetQuantidadeDesignacoesPorParteAsync(
+    int parteId,
+    string nomeParticipante)
+    {
+        var designacoes =
+            await _database
+                .Table<Designacao>()
+                .Where(x => x.ParteId == parteId)
+                .ToListAsync();
 
+        var quantidade = 0;
+
+        foreach (var designacao in designacoes)
+        {
+            var nomes = designacao.Participante
+                .Split(
+                    " e ",
+                    StringSplitOptions.RemoveEmptyEntries |
+                    StringSplitOptions.TrimEntries);
+
+            if (nomes.Any(nome =>
+                    string.Equals(
+                        nome,
+                        nomeParticipante,
+                        StringComparison.OrdinalIgnoreCase)))
+            {
+                quantidade++;
+            }
+        }
+
+        return quantidade;
+    }
+
+    public async Task ExcluirParteCompletaAsync(
+    int parteId)
+    {
+        var habilitacoes =
+            await _database
+                .Table<ParticipanteParte>()
+                .Where(x => x.ParteId == parteId)
+                .ToListAsync();
+
+        foreach (var habilitacao in habilitacoes)
+        {
+            await _database.DeleteAsync(
+                habilitacao);
+        }
+
+        var partesSemana =
+            await _database
+                .Table<ParteSemana>()
+                .Where(x => x.ParteId == parteId)
+                .ToListAsync();
+
+        foreach (var parteSemana in partesSemana)
+        {
+            await _database.DeleteAsync(
+                parteSemana);
+        }
+
+        var parte =
+            await _database
+                .Table<Parte>()
+                .Where(x => x.Id == parteId)
+                .FirstOrDefaultAsync();
+
+        if (parte != null)
+        {
+            await _database.DeleteAsync(
+                parte);
+        }
+    }
 }

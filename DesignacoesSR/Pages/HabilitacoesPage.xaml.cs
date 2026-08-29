@@ -9,11 +9,11 @@ public partial class HabilitacoesPage : ContentPage
 
     private List<ParteHabilitacao> _partes = new();
 
-    public int ParticipanteSelecionadoId { get; set; }
-
-    public HabilitacoesPage(DatabaseService database)
+    public HabilitacoesPage(
+        DatabaseService database)
     {
         InitializeComponent();
+
         _database = database;
     }
 
@@ -21,82 +21,134 @@ public partial class HabilitacoesPage : ContentPage
     {
         base.OnAppearing();
 
+        await CarregarParticipantesAsync();
+        await CarregarPartesAsync();
+
+        btnSalvarHabilitacoes.IsEnabled =
+            pickerParticipante.SelectedItem != null;
+    }
+
+    private async Task CarregarParticipantesAsync()
+    {
+        var participanteSelecionado =
+            pickerParticipante.SelectedItem
+            as Participante;
+
         var participantes =
             await _database.GetParticipantesAsync();
+
+        participantes =
+            participantes
+                .Where(x => x.Ativo)
+                .OrderBy(x => x.Nome)
+                .ToList();
 
         pickerParticipante.ItemsSource =
             participantes;
 
         pickerParticipante.ItemDisplayBinding =
-            new Binding("Nome");
+            new Binding(nameof(Participante.Nome));
 
-        var partes =
-            await _database.GetPartesAsync();
-
-        _partes = partes.Select(p => new ParteHabilitacao
+        if (participanteSelecionado != null)
         {
-            ParteId = p.Id,
-            Nome = p.Nome,
-            Selecionado = false
-        }).ToList();
-
-        listaPartes.ItemsSource = _partes;
-
-        if (ParticipanteSelecionadoId > 0)
-        {
-            var participanteSelecionado =
+            pickerParticipante.SelectedItem =
                 participantes.FirstOrDefault(
-                    x => x.Id == ParticipanteSelecionadoId);
-
-            if (participanteSelecionado != null)
-            {
-                pickerParticipante.SelectedItem =
-                    participanteSelecionado;
-            }
+                    x => x.Id ==
+                         participanteSelecionado.Id);
         }
     }
 
-    private async void pickerParticipante_SelectedIndexChanged(
-    object sender,
-    EventArgs e)
+    private async Task CarregarPartesAsync()
     {
-        if (pickerParticipante.SelectedItem == null)
-            return;
+        var partes =
+            await _database.GetPartesAsync();
 
-        var participante =
-            (Participante)pickerParticipante.SelectedItem;
+        _partes =
+            partes
+                .OrderBy(x => x.Nome)
+                .Select(
+                    parte =>
+                        new ParteHabilitacao
+                        {
+                            ParteId =
+                                parte.Id,
 
-        var habilitacoes =
-            await _database
-            .GetHabilitacoesParticipanteAsync(
-                participante.Id);
+                            Nome =
+                                parte.Nome,
 
+                            Selecionado =
+                                false
+                        })
+                .ToList();
+
+        listaPartes.ItemsSource = null;
+        listaPartes.ItemsSource = _partes;
+
+        await CarregarHabilitacoesSelecionadasAsync();
+    }
+
+    private async Task
+        CarregarHabilitacoesSelecionadasAsync()
+    {
         foreach (var parte in _partes)
         {
             parte.Selecionado = false;
         }
 
-        foreach (var habilitacao in habilitacoes)
+        if (pickerParticipante.SelectedItem
+            is not Participante participante)
         {
-            var parte = _partes.FirstOrDefault(
-                x => x.ParteId ==
-                habilitacao.ParteId);
+            AtualizarListaPartes();
 
-            if (parte != null)
-            {
-                parte.Selecionado = true;
-            }
+            btnSalvarHabilitacoes.IsEnabled =
+                false;
+
+            return;
         }
 
+        var habilitacoes =
+            await _database
+                .GetHabilitacoesParticipanteAsync(
+                    participante.Id);
+
+        var idsHabilitados =
+            habilitacoes
+                .Select(x => x.ParteId)
+                .ToHashSet();
+
+        foreach (var parte in _partes)
+        {
+            parte.Selecionado =
+                idsHabilitados.Contains(
+                    parte.ParteId);
+        }
+
+        AtualizarListaPartes();
+
+        btnSalvarHabilitacoes.IsEnabled =
+            true;
+    }
+
+    private void AtualizarListaPartes()
+    {
         listaPartes.ItemsSource = null;
         listaPartes.ItemsSource = _partes;
+    }
+
+    private async void
+        pickerParticipante_SelectedIndexChanged(
+            object sender,
+            EventArgs e)
+    {
+        await CarregarHabilitacoesSelecionadasAsync();
     }
 
     private async void Salvar_Clicked(
         object sender,
         EventArgs e)
     {
-        if (pickerParticipante.SelectedItem == null)
+        if (pickerParticipante.SelectedItem
+            is not Participante participante)
         {
             await DisplayAlert(
                 "Aviso",
@@ -106,26 +158,99 @@ public partial class HabilitacoesPage : ContentPage
             return;
         }
 
-        var participante =
-            (Participante)pickerParticipante.SelectedItem;
-
-        await _database
-            .RemoverHabilitacoesParticipanteAsync(
-                participante.Id);
-
-        foreach (var parte in _partes.Where(x => x.Selecionado))
+        try
         {
-            await _database.SalvarParticipanteParteAsync(
-                new ParticipanteParte
-                {
-                    ParticipanteId = participante.Id,
-                    ParteId = parte.ParteId
-                });
+            btnSalvarHabilitacoes.IsEnabled =
+                false;
+
+            await _database
+                .RemoverHabilitacoesParticipanteAsync(
+                    participante.Id);
+
+            var partesSelecionadas =
+                _partes
+                    .Where(x => x.Selecionado)
+                    .ToList();
+
+            foreach (var parte in partesSelecionadas)
+            {
+                await _database
+                    .SalvarParticipanteParteAsync(
+                        new ParticipanteParte
+                        {
+                            ParticipanteId =
+                                participante.Id,
+
+                            ParteId =
+                                parte.ParteId
+                        });
+            }
+
+            await DisplayAlert(
+                "Sucesso",
+                $"Habilitações de {participante.Nome} " +
+                "salvas com sucesso.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(
+                "Erro",
+                "Não foi possível salvar as habilitações." +
+                $"\n\n{ex.Message}",
+                "OK");
+        }
+        finally
+        {
+            btnSalvarHabilitacoes.IsEnabled =
+                pickerParticipante.SelectedItem != null;
+        }
+    }
+
+    private async void ExcluirParte_Clicked(
+        object sender,
+        EventArgs e)
+    {
+        if (sender is not Button button ||
+            button.CommandParameter
+                is not ParteHabilitacao parteItem)
+        {
+            return;
         }
 
-        await DisplayAlert(
-            "Sucesso",
-            "Habilitações salvas com sucesso.",
-            "OK");
+        var confirmar =
+            await DisplayAlert(
+                "Excluir parte",
+                $"Deseja excluir a parte " +
+                $"'{parteItem.Nome}'?\n\n" +
+                "Essa ação também excluirá as habilitações " +
+                "e programações semanais relacionadas a ela.",
+                "Excluir",
+                "Cancelar");
+
+        if (!confirmar)
+            return;
+
+        try
+        {
+            await _database
+                .ExcluirParteCompletaAsync(
+                    parteItem.ParteId);
+
+            await CarregarPartesAsync();
+
+            await DisplayAlert(
+                "Sucesso",
+                "A parte foi excluída.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(
+                "Erro",
+                "Não foi possível excluir a parte." +
+                $"\n\n{ex.Message}",
+                "OK");
+        }
     }
 }
