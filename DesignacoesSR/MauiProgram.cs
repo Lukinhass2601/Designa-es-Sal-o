@@ -27,6 +27,12 @@ namespace DesignacoesSR
             builder.Services.AddSingleton<ParticipantesPage>();
             builder.Services.AddSingleton<PartesPage>();
             builder.Services.AddSingleton<HabilitacoesPage>();
+            builder.Services.AddSingleton<ImportacaoExcelService>();
+            builder.Services.AddSingleton<ParteSemanaPage>();
+            builder.Services.AddSingleton<ImportarProgramacaoPage>();
+            builder.Services.AddSingleton<HttpClient>();
+
+            builder.Services.AddSingleton<JwProgramacaoService>();
 
             return builder.Build();
         }

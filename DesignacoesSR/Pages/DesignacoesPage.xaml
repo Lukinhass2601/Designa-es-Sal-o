@@ -6,55 +6,131 @@
     x:Class="DesignacoesSR.Pages.DesignacoesPage"
     Title="Designações">
 
-    <VerticalStackLayout
-    Padding="20"
-    Spacing="15">
+    <Grid
+        Padding="20"
+        RowDefinitions="Auto,Auto,Auto,*"
+        RowSpacing="12">
 
-        <DatePicker
-        x:Name="dtSemana"
-        Format="dd/MM/yyyy"/>
+        <VerticalStackLayout
+            Grid.Row="0"
+            Spacing="5">
+
+            <Label
+                Text="Semana da programação"
+                FontSize="20"
+                FontAttributes="Bold" />
+
+            <DatePicker
+                x:Name="dtSemana"
+                Format="dd/MM/yyyy" />
+
+        </VerticalStackLayout>
 
         <Button
-    Text="Visualizar Sorteio"
-    Clicked="VisualizarDesignacoes_Clicked"/>
+            Grid.Row="1"
+            Text="Visualizar Designações"
+            Clicked="VisualizarDesignacoes_Clicked" />
 
         <Button
-    Text="Gerar Novo Sorteio"
-    Clicked="GerarNovoSorteio_Clicked"/>
+            Grid.Row="2"
+            x:Name="btnSalvarPrograma"
+            Text="Salvar Programa"
+            Clicked="SalvarPrograma_Clicked"
+            IsEnabled="False" />
 
-        <Button
-    x:Name="btnSalvarPrograma"
-    Text="Salvar Programa"
-    Clicked="SalvarPrograma_Clicked"
-    IsEnabled="False"/>
+        <CollectionView
+            Grid.Row="3"
+            x:Name="listaDesignacoes"
+            SelectionMode="None">
 
-        <CollectionView x:Name="listaDesignacoes">
+            <CollectionView.EmptyView>
 
-            
+                <VerticalStackLayout
+                    Padding="20"
+                    Spacing="8"
+                    HorizontalOptions="Center">
+
+                    <Label
+                        Text="Nenhuma designação para exibir."
+                        FontSize="16"
+                        TextColor="Gray"
+                        HorizontalTextAlignment="Center" />
+
+                    <Label
+                        Text="Escolha a data e clique em Visualizar Designações."
+                        FontSize="13"
+                        TextColor="Gray"
+                        HorizontalTextAlignment="Center" />
+
+                </VerticalStackLayout>
+
+            </CollectionView.EmptyView>
 
             <CollectionView.ItemTemplate>
 
                 <DataTemplate>
 
-                    <Frame
-                        Margin="5"
-                        Padding="10">
+                    <Border
+                        Margin="0,5"
+                        Padding="12"
+                        Stroke="LightGray"
+                        StrokeThickness="1">
 
-                        <VerticalStackLayout>
-
-                            <Label
-        FontAttributes="Bold"
-        Text="{Binding Parte}" />
+                        <VerticalStackLayout Spacing="5">
 
                             <Label
-        Text="{Binding Participante1}" />
+                                FontSize="17"
+                                FontAttributes="Bold">
+
+                                <Label.FormattedText>
+
+                                    <FormattedString>
+
+                                        <Span
+                                            Text="{Binding Numero}"
+                                            FontAttributes="Bold" />
+
+                                        <Span Text=". " />
+
+                                        <Span
+                                            Text="{Binding Parte}"
+                                            FontAttributes="Bold" />
+
+                                    </FormattedString>
+
+                                </Label.FormattedText>
+
+                            </Label>
 
                             <Label
-        Text="{Binding Participante2}" />
+                                Text="{Binding Descricao}"
+                                LineBreakMode="WordWrap"
+                                FontSize="13"
+                                TextColor="Gray" />
+
+                            <Label
+                                Text="{Binding DuracaoMinutos, StringFormat='Duração: {0} minutos'}"
+                                FontSize="12"
+                                TextColor="Gray" />
+
+                            <BoxView
+                                HeightRequest="1"
+                                BackgroundColor="LightGray"
+                                Margin="0,5" />
+
+                            <Label
+                                Text="{Binding Participante1}"
+                                FontSize="16"
+                                FontAttributes="Bold" />
+
+                            <Label
+                                Text="{Binding Participante2}"
+                                FontSize="16"
+                                FontAttributes="Bold" />
 
                         </VerticalStackLayout>
 
-                    </Frame>
+                    </Border>
 
                 </DataTemplate>
 
@@ -62,6 +138,6 @@
 
         </CollectionView>
 
-    </VerticalStackLayout>
+    </Grid>
 
 </ContentPage>

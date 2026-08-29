@@ -7,10 +7,19 @@ public partial class CadastroPage : ContentPage
 {
     private readonly DatabaseService _database;
 
-    public CadastroPage(DatabaseService database)
+    private readonly ImportacaoExcelService
+    _importacaoExcelService;
+
+    public CadastroPage(
+    DatabaseService database,
+    ImportacaoExcelService importacaoExcelService)
     {
         InitializeComponent();
+
         _database = database;
+
+        _importacaoExcelService =
+            importacaoExcelService;
     }
 
     private async void SalvarParticipante_Clicked(
@@ -154,5 +163,130 @@ new Participante
 
         await _database.AtualizarParticipanteAsync(
             participante);
+    }
+
+    private async void ImportarExcel_Clicked(
+    object sender,
+    EventArgs e)
+    {
+        try
+        {
+            btnImportarExcel.IsEnabled = false;
+
+            var tiposPermitidos =
+                new FilePickerFileType(
+                    new Dictionary<DevicePlatform,
+                        IEnumerable<string>>
+                    {
+                    {
+                        DevicePlatform.WinUI,
+                        new[] { ".xlsx" }
+                    },
+                    {
+                        DevicePlatform.Android,
+                        new[]
+                        {
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        }
+                    },
+                    {
+                        DevicePlatform.iOS,
+                        new[]
+                        {
+                            "org.openxmlformats.spreadsheetml.sheet"
+                        }
+                    },
+                    {
+                        DevicePlatform.MacCatalyst,
+                        new[]
+                        {
+                            "org.openxmlformats.spreadsheetml.sheet"
+                        }
+                    }
+                    });
+
+            var arquivo =
+                await FilePicker.Default.PickAsync(
+                    new PickOptions
+                    {
+                        PickerTitle =
+                            "Selecione a planilha de participantes",
+
+                        FileTypes =
+                            tiposPermitidos
+                    });
+
+            if (arquivo == null)
+                return;
+
+            if (!arquivo.FileName.EndsWith(
+                    ".xlsx",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                await DisplayAlert(
+                    "Arquivo inválido",
+                    "Selecione um arquivo no formato XLSX.",
+                    "OK");
+
+                return;
+            }
+
+            using var stream =
+                await arquivo.OpenReadAsync();
+
+            var resultado =
+                await _importacaoExcelService
+                    .ImportarAsync(stream);
+
+            var mensagem =
+                $"Participantes adicionados: " +
+                $"{resultado.ParticipantesAdicionados}\n" +
+
+                $"Participantes atualizados: " +
+                $"{resultado.ParticipantesAtualizados}\n" +
+
+                $"Habilitações adicionadas: " +
+                $"{resultado.HabilitacoesAdicionadas}\n" +
+
+                $"Partes não encontradas: " +
+                $"{resultado.PartesNaoEncontradas}";
+
+            if (resultado.Avisos.Any())
+            {
+                var primeirosAvisos =
+                    resultado.Avisos
+                    .Take(8);
+
+                mensagem +=
+                    "\n\nAvisos:\n" +
+                    string.Join(
+                        "\n",
+                        primeirosAvisos);
+
+                if (resultado.Avisos.Count > 8)
+                {
+                    mensagem +=
+                        $"\n... e mais " +
+                        $"{resultado.Avisos.Count - 8} avisos.";
+                }
+            }
+
+            await DisplayAlert(
+                "Importação concluída",
+                mensagem,
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(
+                "Erro na importação",
+                $"Não foi possível importar a planilha.\n\n" +
+                $"{ex.Message}",
+                "OK");
+        }
+        finally
+        {
+            btnImportarExcel.IsEnabled = true;
+        }
     }
 }

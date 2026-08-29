@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DesignacoesSR.Pages.ParteSemanaPage"
+    Title="Programação Semanal">
+
+    <ScrollView>
+
+        <VerticalStackLayout
+            Padding="20"
+            Spacing="12">
+
+            <Label
+                Text="Cadastrar parte da semana"
+                FontSize="22"
+                FontAttributes="Bold" />
+
+            <Label Text="Data da semana" />
+
+            <DatePicker
+                x:Name="dtSemana"
+                Format="dd/MM/yyyy"
+                DateSelected="dtSemana_DateSelected" />
+
+            <Label Text="Parte base" />
+
+            <Picker
+                x:Name="pickerParte"
+                Title="Selecione uma parte"
+                ItemDisplayBinding="{Binding Nome}"
+                SelectedIndexChanged="pickerParte_SelectedIndexChanged" />
+
+            <Label Text="Número da parte" />
+
+            <Entry
+                x:Name="txtNumero"
+                Placeholder="Exemplo: 1"
+                Keyboard="Numeric" />
+
+            <Label Text="Título publicado" />
+
+            <Entry
+                x:Name="txtTitulo"
+                Placeholder="Exemplo: Iniciando Conversas" />
+
+            <Label Text="Descrição" />
+
+            <Editor
+                x:Name="txtDescricao"
+                Placeholder="Informações adicionais da parte"
+                AutoSize="TextChanges"
+                HeightRequest="100" />
+
+            <Label Text="Duração em minutos" />
+
+            <Entry
+                x:Name="txtDuracao"
+                Placeholder="Exemplo: 4"
+                Keyboard="Numeric" />
+
+            <HorizontalStackLayout Spacing="10">
+
+                <Button
+                    x:Name="btnSalvar"
+                    Text="Salvar Parte"
+                    Clicked="SalvarParteSemana_Clicked"
+                    HorizontalOptions="Fill"
+                    WidthRequest="160" />
+
+                <Button
+                    x:Name="btnCancelarEdicao"
+                    Text="Cancelar"
+                    Clicked="CancelarEdicao_Clicked"
+                    IsVisible="False"
+                    HorizontalOptions="Fill"
+                    WidthRequest="120" />
+
+            </HorizontalStackLayout>
+
+            <BoxView
+                HeightRequest="1"
+                BackgroundColor="Gray"
+                Margin="0,10" />
+
+            <Label
+                Text="Partes cadastradas para a semana"
+                FontSize="20"
+                FontAttributes="Bold" />
+
+            <Label
+                x:Name="lblDataSelecionada"
+                Text="Nenhuma data selecionada"
+                FontSize="14"
+                TextColor="Gray" />
+
+            <Label
+                x:Name="lblNenhumaParte"
+                Text="Nenhuma parte cadastrada para esta semana."
+                TextColor="Gray"
+                IsVisible="False" />
+
+            <CollectionView
+                x:Name="listaPartesSemana"
+                SelectionMode="None">
+
+                <CollectionView.ItemTemplate>
+
+                    <DataTemplate>
+
+                        <Border
+                            Margin="0,5"
+                            Padding="12"
+                            Stroke="LightGray"
+                            StrokeThickness="1">
+
+                            <Grid
+                                RowDefinitions="Auto,Auto,Auto,Auto"
+                                ColumnDefinitions="*,Auto,Auto"
+                                ColumnSpacing="8"
+                                RowSpacing="5">
+
+                                <Label
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    FontAttributes="Bold"
+                                    FontSize="17">
+
+                                    <Label.FormattedText>
+                                        <FormattedString>
+
+                                            <Span
+                                                Text="{Binding Numero}"
+                                                FontAttributes="Bold" />
+
+                                            <Span Text=". " />
+
+                                            <Span
+                                                Text="{Binding Titulo}"
+                                                FontAttributes="Bold" />
+
+                                        </FormattedString>
+                                    </Label.FormattedText>
+
+                                </Label>
+
+                                <Button
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    Text="Editar"
+                                    FontSize="12"
+                                    Padding="10,5"
+                                    CommandParameter="{Binding .}"
+                                    Clicked="EditarParteSemana_Clicked" />
+
+                                <Button
+                                    Grid.Row="0"
+                                    Grid.Column="2"
+                                    Text="Excluir"
+                                    FontSize="12"
+                                    Padding="10,5"
+                                    CommandParameter="{Binding .}"
+                                    Clicked="ExcluirParteSemana_Clicked" />
+
+                                <Label
+                                    Grid.Row="1"
+                                    Grid.ColumnSpan="3"
+                                    Text="{Binding Descricao}"
+                                    LineBreakMode="WordWrap" />
+
+                                <Label
+                                    Grid.Row="2"
+                                    Grid.ColumnSpan="3"
+                                    Text="{Binding DuracaoMinutos, StringFormat='Duração: {0} minutos'}"
+                                    FontSize="13"
+                                    TextColor="Gray" />
+
+                                <Label
+                                    Grid.Row="3"
+                                    Grid.ColumnSpan="3"
+                                    Text="{Binding DataSemana, StringFormat='Semana: {0:dd/MM/yyyy}'}"
+                                    FontSize="13"
+                                    TextColor="Gray" />
+
+                            </Grid>
+
+                        </Border>
+
+                    </DataTemplate>
+
+                </CollectionView.ItemTemplate>
+
+            </CollectionView>
+
+        </VerticalStackLayout>
+
+    </ScrollView>
+
+</ContentPage>

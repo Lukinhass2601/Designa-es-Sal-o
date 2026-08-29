@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="DesignacoesSR.Pages.ImportarProgramacaoPage"
+    Title="Importar Programação">
+
+    <Grid
+        Padding="20"
+        RowDefinitions="Auto,Auto,Auto,Auto,*"
+        RowSpacing="12">
+
+        <VerticalStackLayout
+            Grid.Row="0"
+            Spacing="5">
+
+            <Label
+                Text="Importar programação do JW.ORG"
+                FontSize="22"
+                FontAttributes="Bold" />
+
+            <Label
+                Text="Cole abaixo o endereço da página semanal da programação."
+                FontSize="13"
+                TextColor="Gray"
+                LineBreakMode="WordWrap" />
+
+        </VerticalStackLayout>
+
+        <VerticalStackLayout
+            Grid.Row="1"
+            Spacing="5">
+
+            <Label
+                Text="Data da semana"
+                FontAttributes="Bold" />
+
+            <DatePicker
+                x:Name="dtSemana"
+                Format="dd/MM/yyyy" />
+
+            <Label
+                Text="Link da página semanal"
+                FontAttributes="Bold" />
+
+            <Editor
+                x:Name="txtUrlProgramacao"
+                Placeholder="https://www.jw.org/..."
+                AutoSize="TextChanges"
+                HeightRequest="90" />
+
+        </VerticalStackLayout>
+
+        <Button
+            Grid.Row="2"
+            x:Name="btnBuscarProgramacao"
+            Text="Buscar e visualizar"
+            Clicked="BuscarProgramacao_Clicked" />
+
+        <Button
+            Grid.Row="3"
+            x:Name="btnSalvarProgramacao"
+            Text="Salvar programação"
+            Clicked="SalvarProgramacao_Clicked"
+            IsEnabled="False" />
+
+        <CollectionView
+            Grid.Row="4"
+            x:Name="listaPrevia"
+            SelectionMode="None">
+
+            <CollectionView.EmptyView>
+
+                <VerticalStackLayout
+                    Padding="20"
+                    HorizontalOptions="Center"
+                    Spacing="8">
+
+                    <Label
+                        Text="Nenhuma programação carregada."
+                        HorizontalTextAlignment="Center"
+                        FontSize="16"
+                        TextColor="Gray" />
+
+                    <Label
+                        Text="Informe a data e o link da página semanal."
+                        HorizontalTextAlignment="Center"
+                        FontSize="13"
+                        TextColor="Gray" />
+
+                </VerticalStackLayout>
+
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+
+                <DataTemplate>
+
+                    <Border
+                        Margin="0,5"
+                        Padding="12"
+                        Stroke="LightGray"
+                        StrokeThickness="1">
+
+                        <Grid
+                            ColumnDefinitions="Auto,*"
+                            RowDefinitions="Auto,Auto,Auto,Auto"
+                            ColumnSpacing="10"
+                            RowSpacing="5">
+
+                            <CheckBox
+                                Grid.RowSpan="4"
+                                Grid.Column="0"
+                                IsChecked="{Binding Selecionado}"
+                                VerticalOptions="Start" />
+
+                            <Label
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                FontSize="17"
+                                FontAttributes="Bold">
+
+                                <Label.FormattedText>
+
+                                    <FormattedString>
+
+                                        <Span
+                                            Text="{Binding Numero}"
+                                            FontAttributes="Bold" />
+
+                                        <Span Text=". " />
+
+                                        <Span
+                                            Text="{Binding TituloOriginal}"
+                                            FontAttributes="Bold" />
+
+                                    </FormattedString>
+
+                                </Label.FormattedText>
+
+                            </Label>
+
+                            <Label
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Text="{Binding Descricao}"
+                                FontSize="13"
+                                LineBreakMode="WordWrap" />
+
+                            <Label
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                Text="{Binding DuracaoMinutos,
+                                    StringFormat='Duração: {0} minutos'}"
+                                FontSize="12"
+                                TextColor="Gray" />
+
+                            <Label
+                                Grid.Row="3"
+                                Grid.Column="1"
+                                Text="{Binding Status}"
+                                FontSize="12"
+                                FontAttributes="Bold" />
+
+                        </Grid>
+
+                    </Border>
+
+                </DataTemplate>
+
+            </CollectionView.ItemTemplate>
+
+        </CollectionView>
+
+    </Grid>
+
+</ContentPage>

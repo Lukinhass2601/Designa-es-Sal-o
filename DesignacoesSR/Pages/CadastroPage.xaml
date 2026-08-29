@@ -90,7 +90,25 @@
             <Button
                 Text="Salvar Parte"
                 Clicked="SalvarParte_Clicked" />
+            <BoxView
+    HeightRequest="1"
+    BackgroundColor="Gray"
+    Margin="0,15" />
 
+            <Label
+    Text="Importação"
+    FontSize="20"
+    FontAttributes="Bold" />
+
+            <Label
+    Text="Importe participantes, sexo e habilitações usando a planilha organizada."
+    FontSize="13"
+    TextColor="Gray" />
+
+            <Button
+    x:Name="btnImportarExcel"
+    Text="Importar participantes do Excel"
+    Clicked="ImportarExcel_Clicked" />
         </VerticalStackLayout>
 
     </ScrollView>

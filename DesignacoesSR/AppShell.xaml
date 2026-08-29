@@ -8,13 +8,24 @@
 
     <TabBar>
 
+        
+        
         <ShellContent
-            Title="Cadastros"
-            ContentTemplate="{DataTemplate pages:CadastroPage}" />
+    Title="Programação"
+    ContentTemplate="{DataTemplate pages:ParteSemanaPage}" />
+
+        <ShellContent
+    Title="Importar"
+    ContentTemplate="{DataTemplate pages:ImportarProgramacaoPage}" />
 
         <ShellContent
             Title="Designações"
             ContentTemplate="{DataTemplate pages:DesignacoesPage}" />
+
+        <ShellContent
+            Title="Cadastros"
+            ContentTemplate="{DataTemplate pages:CadastroPage}" />
+
 
         <ShellContent
             Title="Histórico"

@@ -1,5 +1,8 @@
-﻿using SQLite;
-using DesignacoesSR.Models;
+﻿using DesignacoesSR.Models;
+using SQLite;
+using System.Globalization;
+using System.Text;
+
 
 namespace DesignacoesSR.Services;
 
@@ -27,6 +30,7 @@ public class DatabaseService
         _database.CreateTableAsync<ProgramaSemanal>().Wait();
         _database.CreateTableAsync<Designacao>().Wait();
         _database.CreateTableAsync<ParticipanteParte>().Wait();
+        _database.CreateTableAsync<ParteSemana>().Wait();
     }
 
     // PARTICIPANTES
@@ -184,4 +188,315 @@ public class DatabaseService
             .Distinct()
             .ToList();
     }
+
+    public async Task<List<DateTime>> GetSemanasAsync()
+    {
+        var designacoes =
+            await _database
+                .Table<Designacao>()
+                .ToListAsync();
+
+        return designacoes
+            .Select(x => x.DataSemana.Date)
+            .Distinct()
+            .OrderByDescending(x => x)
+            .ToList();
+    }
+
+    public Task<List<Designacao>>
+    GetDesignacoesSemanaAsync(
+        DateTime dataSemana)
+    {
+        var inicio =
+            dataSemana.Date;
+
+        var fim =
+            inicio.AddDays(1);
+
+        return _database
+            .Table<Designacao>()
+            .Where(x =>
+                x.DataSemana >= inicio &&
+                x.DataSemana < fim)
+            .OrderBy(x => x.Id)
+            .ToListAsync();
+    }
+
+    public async Task ExcluirSemanaAsync(
+    DateTime dataSemana)
+    {
+        var inicio =
+            dataSemana.Date;
+
+        var fim =
+            inicio.AddDays(1);
+
+        var registros =
+            await _database
+                .Table<Designacao>()
+                .Where(x =>
+                    x.DataSemana >= inicio &&
+                    x.DataSemana < fim)
+                .ToListAsync();
+
+        foreach (var registro in registros)
+        {
+            await _database.DeleteAsync(
+                registro);
+        }
+    }
+
+    public async Task<Participante?> GetParticipantePorNomeNormalizadoAsync(
+    string nome)
+    {
+        var participantes =
+            await _database.Table<Participante>()
+            .ToListAsync();
+
+        var nomeNormalizado = NormalizarTexto(nome);
+
+        return participantes.FirstOrDefault(
+            participante =>
+                NormalizarTexto(participante.Nome) ==
+                nomeNormalizado);
+    }
+
+
+    public async Task<Parte?> GetPartePorNomeNormalizadoAsync(
+    string nome)
+    {
+        var partes =
+            await _database.Table<Parte>()
+            .ToListAsync();
+
+        var nomeNormalizado = NormalizarTexto(nome);
+
+        return partes.FirstOrDefault(
+            parte =>
+                NormalizarTexto(parte.Nome) ==
+                nomeNormalizado);
+    }
+
+    public async Task<bool> ParticipanteParteExisteAsync(
+    int participanteId,
+    int parteId)
+    {
+        var registro =
+            await _database.Table<ParticipanteParte>()
+            .Where(x =>
+                x.ParticipanteId == participanteId &&
+                x.ParteId == parteId)
+            .FirstOrDefaultAsync();
+
+        return registro != null;
+    }
+
+    private static string NormalizarTexto(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+            return string.Empty;
+
+        var textoLimpo =
+            string.Join(
+                " ",
+                texto.Trim()
+                    .Split(
+                        ' ',
+                        StringSplitOptions.RemoveEmptyEntries));
+
+        var normalizado =
+            textoLimpo
+            .ToUpperInvariant()
+            .Normalize(NormalizationForm.FormD);
+
+        var caracteres =
+            normalizado.Where(
+                caractere =>
+                    CharUnicodeInfo.GetUnicodeCategory(caractere) !=
+                    UnicodeCategory.NonSpacingMark);
+
+        return new string(caracteres.ToArray())
+            .Normalize(NormalizationForm.FormC);
+    }
+
+    public Task<int> SalvarParteSemanaAsync(
+    ParteSemana parteSemana)
+    {
+        parteSemana.DataSemana =
+            parteSemana.DataSemana.Date;
+
+        return _database.InsertAsync(parteSemana);
+    }
+
+    public Task<int> AtualizarParteSemanaAsync(
+    ParteSemana parteSemana)
+    {
+        parteSemana.DataSemana =
+            parteSemana.DataSemana.Date;
+
+        return _database.UpdateAsync(parteSemana);
+    }
+
+    public Task<int> ExcluirParteSemanaAsync(
+    ParteSemana parteSemana)
+    {
+        return _database.DeleteAsync(parteSemana);
+    }
+
+    public Task<List<ParteSemana>>
+    GetTodasPartesSemanaAsync()
+    {
+        return _database
+            .Table<ParteSemana>()
+            .OrderBy(x => x.DataSemana)
+            .ThenBy(x => x.Numero)
+            .ToListAsync();
+    }
+
+    public Task<List<ParteSemana>>
+    GetPartesDaSemanaAsync(
+        DateTime dataSemana)
+    {
+        var inicio = dataSemana.Date;
+
+        var fim = inicio.AddDays(1);
+
+        return _database
+            .Table<ParteSemana>()
+            .Where(x =>
+                x.DataSemana >= inicio &&
+                x.DataSemana < fim)
+            .OrderBy(x => x.Numero)
+            .ToListAsync();
+    }
+
+    public async Task<List<DateTime>>
+    GetSemanasComPartesAsync()
+    {
+        var registros =
+            await _database
+                .Table<ParteSemana>()
+                .ToListAsync();
+
+        return registros
+            .Select(x => x.DataSemana.Date)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+    }
+
+    public async Task<int>
+    ExcluirPartesDaSemanaAsync(
+        DateTime dataSemana)
+    {
+        var inicio = dataSemana.Date;
+
+        var fim = inicio.AddDays(1);
+
+        var registros =
+            await _database
+                .Table<ParteSemana>()
+                .Where(x =>
+                    x.DataSemana >= inicio &&
+                    x.DataSemana < fim)
+                .ToListAsync();
+
+        var quantidadeExcluida = 0;
+
+        foreach (var registro in registros)
+        {
+            quantidadeExcluida +=
+                await _database.DeleteAsync(registro);
+        }
+
+        return quantidadeExcluida;
+    }
+
+    public async Task<bool>
+    ParteSemanaExisteAsync(
+        DateTime dataSemana,
+        int numero)
+    {
+        var inicio = dataSemana.Date;
+
+        var fim = inicio.AddDays(1);
+
+        var registro =
+            await _database
+                .Table<ParteSemana>()
+                .Where(x =>
+                    x.DataSemana >= inicio &&
+                    x.DataSemana < fim &&
+                    x.Numero == numero)
+                .FirstOrDefaultAsync();
+
+        return registro != null;
+    }
+
+    public async Task SubstituirPartesDaSemanaAsync(
+    DateTime dataSemana,
+    List<ParteSemana> novasPartes)
+    {
+        await ExcluirPartesDaSemanaAsync(
+            dataSemana);
+
+        foreach (var parte in novasPartes)
+        {
+            parte.Id = 0;
+            parte.DataSemana = dataSemana.Date;
+
+            await _database.InsertAsync(parte);
+        }
+    }
+
+    public Task<Parte?> GetPartePorIdAsync(
+    int parteId)
+    {
+        return _database
+            .Table<Parte>()
+            .Where(x => x.Id == parteId)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<bool> ExisteProgramaNaSemanaAsync(
+    DateTime dataSemana)
+    {
+        var inicio = dataSemana.Date;
+        var fim = inicio.AddDays(1);
+
+        var registro = await _database
+            .Table<Designacao>()
+            .Where(x =>
+                x.DataSemana >= inicio &&
+                x.DataSemana < fim)
+            .FirstOrDefaultAsync();
+
+        return registro != null;
+    }
+
+    public async Task<int> ExcluirDesignacoesDaSemanaAsync(
+    DateTime dataSemana)
+    {
+        var inicio = dataSemana.Date;
+        var fim = inicio.AddDays(1);
+
+        var registros = await _database
+            .Table<Designacao>()
+            .Where(x =>
+                x.DataSemana >= inicio &&
+                x.DataSemana < fim)
+            .ToListAsync();
+
+        var quantidadeExcluida = 0;
+
+        foreach (var registro in registros)
+        {
+            quantidadeExcluida +=
+                await _database.DeleteAsync(registro);
+        }
+
+        return quantidadeExcluida;
+    }
+
+
 }
