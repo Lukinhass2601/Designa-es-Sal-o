@@ -84,16 +84,41 @@
                 BackgroundColor="Gray"
                 Margin="0,10" />
 
-            <Label
-                Text="Partes cadastradas para a semana"
-                FontSize="20"
-                FontAttributes="Bold" />
+            <Grid
+    ColumnDefinitions="*,Auto"
+    ColumnSpacing="10">
 
-            <Label
-                x:Name="lblDataSelecionada"
-                Text="Nenhuma data selecionada"
-                FontSize="14"
-                TextColor="Gray" />
+                <VerticalStackLayout
+        Grid.Column="0"
+        Spacing="3"
+        VerticalOptions="Center">
+
+                    <Label
+            Text="Partes cadastradas para a semana"
+            FontSize="20"
+            FontAttributes="Bold" />
+
+                    <Label
+            x:Name="lblDataSelecionada"
+            Text="Nenhuma data selecionada"
+            FontSize="14"
+            TextColor="Gray" />
+
+                </VerticalStackLayout>
+
+                <Button
+        Grid.Column="1"
+        x:Name="btnExcluirProgramacao"
+        Text="Excluir Programação"
+        BackgroundColor="#C62828"
+        TextColor="White"
+        FontAttributes="Bold"
+        Padding="16,10"
+        VerticalOptions="Center"
+        IsEnabled="False"
+        Clicked="ExcluirProgramacao_Clicked" />
+
+            </Grid>
 
             <Label
                 x:Name="lblNenhumaParte"

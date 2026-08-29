@@ -30,7 +30,13 @@ public partial class ParteSemanaPage : ContentPage
         var partes =
             await _database.GetPartesAsync();
 
-        pickerParte.ItemsSource = partes;
+        pickerParte.ItemsSource =
+            partes
+                .OrderBy(x => x.Nome)
+                .ToList();
+
+        pickerParte.ItemDisplayBinding =
+            new Binding(nameof(Parte.Nome));
     }
 
     private async Task CarregarPartesDaSemanaAsync()
@@ -47,12 +53,20 @@ public partial class ParteSemanaPage : ContentPage
                 dataSelecionada);
 
         listaPartesSemana.ItemsSource =
+            null;
+
+        listaPartesSemana.ItemsSource =
             partesSemana;
 
         lblNenhumaParte.IsVisible =
             partesSemana.Count == 0;
+
+        btnExcluirProgramacao.IsEnabled =
+            partesSemana.Count > 0;
     }
 
+
+    
     private DateTime ObterDataSelecionada()
     {
         return dtSemana.Date?.Date
@@ -347,5 +361,78 @@ public partial class ParteSemanaPage : ContentPage
             false;
 
         _parteSemanaEmEdicao = null;
+    }
+
+    private async void ExcluirProgramacao_Clicked(
+    object sender,
+    EventArgs e)
+    {
+        var dataSelecionada =
+            ObterDataSelecionada();
+
+        var partesSemana =
+            await _database.GetPartesDaSemanaAsync(
+                dataSelecionada);
+
+        if (partesSemana.Count == 0)
+        {
+            await DisplayAlert(
+                "Aviso",
+                "Não existe programação cadastrada " +
+                "para esta semana.",
+                "OK");
+
+            btnExcluirProgramacao.IsEnabled =
+                false;
+
+            return;
+        }
+
+        var confirmar =
+            await DisplayAlert(
+                "Excluir programação",
+                $"Deseja excluir toda a programação " +
+                $"da semana {dataSelecionada:dd/MM/yyyy}?\n\n" +
+                $"Serão excluídas {partesSemana.Count} partes.\n\n" +
+                "Os participantes, as partes base e as " +
+                "habilitações não serão excluídos.",
+                "Excluir",
+                "Cancelar");
+
+        if (!confirmar)
+            return;
+
+        try
+        {
+            btnExcluirProgramacao.IsEnabled =
+                false;
+
+            var quantidadeExcluida =
+                await _database
+                    .ExcluirPartesDaSemanaAsync(
+                        dataSelecionada);
+
+            CancelarEdicao();
+
+            await CarregarPartesDaSemanaAsync();
+
+            await DisplayAlert(
+                "Programação excluída",
+                $"A programação de " +
+                $"{dataSelecionada:dd/MM/yyyy} foi excluída.\n\n" +
+                $"Partes removidas: {quantidadeExcluida}.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            btnExcluirProgramacao.IsEnabled =
+                true;
+
+            await DisplayAlert(
+                "Erro",
+                "Não foi possível excluir a programação." +
+                $"\n\n{ex.Message}",
+                "OK");
+        }
     }
 }

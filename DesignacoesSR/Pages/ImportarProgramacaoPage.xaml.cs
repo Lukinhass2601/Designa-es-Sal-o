@@ -78,9 +78,7 @@ public partial class ImportarProgramacaoPage : ContentPage
 
             listaPrevia.ItemsSource = _previa;
 
-            btnSalvarProgramacao.IsEnabled =
-                _previa.Any(
-                    x => x.ParteBaseEncontrada);
+            AtualizarBotaoSalvar();
 
             var partesEncontradas =
                 _previa.Count(
@@ -270,5 +268,226 @@ public partial class ImportarProgramacaoPage : ContentPage
         listaPrevia.ItemsSource = null;
 
         btnSalvarProgramacao.IsEnabled = false;
+    }
+    private async void AdicionarParteBase_Clicked(
+    object sender,
+    EventArgs e)
+    {
+        if (sender is not Button button ||
+            button.CommandParameter
+                is not ParteSemanaImportacao item)
+        {
+            return;
+        }
+
+        if (item.ParteBaseEncontrada)
+        {
+            await DisplayAlert(
+                "Aviso",
+                "Essa parte já está cadastrada.",
+                "OK");
+
+            return;
+        }
+
+        var nomeParte = await DisplayPromptAsync(
+            "Adicionar parte",
+            "Confira ou altere o nome da parte:",
+            accept: "Continuar",
+            cancel: "Cancelar",
+            initialValue: item.TituloOriginal,
+            maxLength: 150);
+
+        if (string.IsNullOrWhiteSpace(nomeParte))
+            return;
+
+        nomeParte = nomeParte.Trim();
+
+        var parteExistente =
+            await _database
+                .GetPartePorNomeNormalizadoAsync(
+                    nomeParte);
+
+        if (parteExistente != null)
+        {
+            item.ParteBaseId =
+                parteExistente.Id;
+
+            item.NomeParteBase =
+                parteExistente.Nome;
+
+            item.ParteBaseEncontrada =
+                true;
+
+            AtualizarPrevia();
+
+            await DisplayAlert(
+                "Parte encontrada",
+                "Essa parte já existia e foi relacionada " +
+                "com a programação.",
+                "OK");
+
+            return;
+        }
+
+        var quantidadeTexto =
+            await DisplayActionSheet(
+                "Quantidade de participantes",
+                "Cancelar",
+                null,
+                "1 participante",
+                "2 participantes");
+
+        if (quantidadeTexto == "Cancelar" ||
+            string.IsNullOrWhiteSpace(quantidadeTexto))
+        {
+            return;
+        }
+
+        var quantidadeParticipantes =
+            quantidadeTexto.StartsWith("2")
+                ? 2
+                : 1;
+
+        var sexoTexto =
+            await DisplayActionSheet(
+                "Sexo permitido para esta parte",
+                "Cancelar",
+                null,
+                "Masculino",
+                "Feminino");
+
+        if (sexoTexto == "Cancelar" ||
+            string.IsNullOrWhiteSpace(sexoTexto))
+        {
+            return;
+        }
+
+        var sexoPermitido =
+            sexoTexto == "Feminino"
+                ? "F"
+                : "M";
+
+        var confirmar =
+            await DisplayAlert(
+                "Confirmar nova parte",
+                $"Nome: {nomeParte}\n" +
+                $"Participantes: {quantidadeParticipantes}\n" +
+                $"Sexo permitido: {sexoTexto}\n\n" +
+                "Deseja adicionar essa parte às habilitações?",
+                "Adicionar",
+                "Cancelar");
+
+        if (!confirmar)
+            return;
+
+        try
+        {
+            var novaParte =
+                new Parte
+                {
+                    Nome =
+                        nomeParte,
+
+                    QuantidadeParticipantes =
+                        quantidadeParticipantes,
+
+                    SexoPermitido =
+                        sexoPermitido
+                };
+            var opcaoGrupo =
+    await DisplayActionSheet(
+        "Quem pode fazer esta parte?",
+        "Cancelar",
+        null,
+        "Somente Anciãos",
+        "Somente Servos Ministeriais",
+        "Anciãos e Servos",
+        "Selecionar manualmente");
+
+            if (string.IsNullOrWhiteSpace(opcaoGrupo) ||
+                opcaoGrupo == "Cancelar")
+            {
+                return;
+            }
+
+            var codigoGrupo =
+                opcaoGrupo switch
+                {
+                    "Somente Anciãos" =>
+                        "ANCIAO",
+
+                    "Somente Servos Ministeriais" =>
+                        "SERVO",
+
+                    "Anciãos e Servos" =>
+                        "ANCIAOS_E_SERVOS",
+
+                    _ =>
+                        "MANUAL"
+                };
+            await _database
+                .SalvarParteAsync(
+                    novaParte);
+            var quantidadeHabilitada = 0;
+
+            if (codigoGrupo != "MANUAL")
+            {
+                quantidadeHabilitada =
+                    await _database
+                        .HabilitarGrupoParaParteAsync(
+                            novaParte.Id,
+                            codigoGrupo);
+            }
+
+            item.ParteBaseId =
+                novaParte.Id;
+
+            item.NomeParteBase =
+                novaParte.Nome;
+
+            item.ParteBaseEncontrada =
+                true;
+
+
+
+            AtualizarPrevia();
+
+            AtualizarBotaoSalvar();
+
+            await DisplayAlert(
+                "Parte adicionada",
+                $"A parte '{novaParte.Nome}' foi adicionada.\n\n" +
+                "Agora abra a aba Habilitações e selecione " +
+                "quem poderá fazer essa parte.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(
+                "Erro",
+                "Não foi possível adicionar a parte." +
+                $"\n\n{ex.Message}",
+                "OK");
+        }
+    }
+
+    private void AtualizarPrevia()
+    {
+        listaPrevia.ItemsSource = null;
+        listaPrevia.ItemsSource = _previa;
+    }
+
+    private void AtualizarBotaoSalvar()
+    {
+        var partesSelecionadas =
+            _previa
+                .Where(x => x.Selecionado)
+                .ToList();
+
+        btnSalvarProgramacao.IsEnabled =
+            partesSelecionadas.Count > 0 &&
+            partesSelecionadas.All(
+                x => x.ParteBaseEncontrada);
     }
 }

@@ -570,4 +570,111 @@ public class DatabaseService
                 parte);
         }
     }
+
+    public async Task<List<Participante>>
+    GetAnciaosAsync()
+    {
+        var participantes =
+            await _database
+                .Table<Participante>()
+                .Where(x =>
+                    x.Ativo &&
+                    x.Grupo == "ANCIAO")
+                .ToListAsync();
+
+        return participantes
+            .OrderBy(x => x.Nome)
+            .ToList();
+    }
+
+
+    public async Task<List<Participante>>
+    GetServosAsync()
+    {
+        var participantes =
+            await _database
+                .Table<Participante>()
+                .Where(x =>
+                    x.Ativo &&
+                    x.Grupo == "SERVO")
+                .ToListAsync();
+
+        return participantes
+            .OrderBy(x => x.Nome)
+            .ToList();
+    }
+
+    public async Task<List<Participante>>
+    GetAnciaosEServosAsync()
+    {
+        var participantes =
+            await _database
+                .Table<Participante>()
+                .Where(x =>
+                    x.Ativo &&
+                    (
+                        x.Grupo == "ANCIAO" ||
+                        x.Grupo == "SERVO"
+                    ))
+                .ToListAsync();
+
+        return participantes
+            .OrderBy(x => x.Nome)
+            .ToList();
+    }
+
+    public async Task<int>
+    HabilitarGrupoParaParteAsync(
+        int parteId,
+        string grupo)
+    {
+        List<Participante> participantes;
+
+        if (grupo == "ANCIAO")
+        {
+            participantes =
+                await GetAnciaosAsync();
+        }
+        else if (grupo == "SERVO")
+        {
+            participantes =
+                await GetServosAsync();
+        }
+        else if (grupo == "ANCIAOS_E_SERVOS")
+        {
+            participantes =
+                await GetAnciaosEServosAsync();
+        }
+        else
+        {
+            return 0;
+        }
+
+        var quantidadeAdicionada = 0;
+
+        foreach (var participante in participantes)
+        {
+            var relacionamentoExiste =
+                await ParticipanteParteExisteAsync(
+                    participante.Id,
+                    parteId);
+
+            if (relacionamentoExiste)
+                continue;
+
+            await SalvarParticipanteParteAsync(
+                new ParticipanteParte
+                {
+                    ParticipanteId =
+                        participante.Id,
+
+                    ParteId =
+                        parteId
+                });
+
+            quantidadeAdicionada++;
+        }
+
+        return quantidadeAdicionada;
+    }
 }

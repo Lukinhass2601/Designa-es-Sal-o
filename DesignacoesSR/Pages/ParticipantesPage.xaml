@@ -6,46 +6,178 @@
     x:Class="DesignacoesSR.Pages.ParticipantesPage"
     Title="Participantes">
 
-    <CollectionView
-        x:Name="listaParticipantes"
-        Margin="10">
+    <Grid
+        Padding="20"
+        RowDefinitions="Auto,Auto,*"
+        RowSpacing="12">
 
-        <CollectionView.ItemTemplate>
+        <Label
+            Grid.Row="0"
+            Text="Participantes"
+            FontSize="24"
+            FontAttributes="Bold" />
 
-            <DataTemplate>
+        <SearchBar
+            Grid.Row="1"
+            x:Name="campoPesquisa"
+            Placeholder="Pesquisar participante..."
+            TextChanged="CampoPesquisa_TextChanged"
+            SearchButtonPressed="CampoPesquisa_SearchButtonPressed" />
 
-                <Frame Margin="5">
+        <CollectionView
+            Grid.Row="2"
+            x:Name="listaParticipantes"
+            SelectionMode="None"
+            VerticalScrollBarVisibility="Always">
 
-                    <HorizontalStackLayout Spacing="10">
+            <CollectionView.EmptyView>
 
-                        <Label
-                            Text="{Binding Nome}"
-                            WidthRequest="180"
-                            VerticalOptions="Center"/>
+                <VerticalStackLayout
+                    Padding="30"
+                    Spacing="8"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
 
-                        <Button
-                            Text="Editar"
-                            CommandParameter="{Binding .}"
-                            Clicked="EditarParticipante_Clicked"/>
+                    <Label
+                        Text="Nenhum participante encontrado."
+                        FontSize="16"
+                        TextColor="Gray"
+                        HorizontalTextAlignment="Center" />
 
-                        <Button
-    Text="Habilitações"
-    CommandParameter="{Binding .}"
-    Clicked="HabilitacoesParticipante_Clicked"/>
+                    <Label
+                        Text="Pesquise outro nome ou cadastre um participante."
+                        FontSize="13"
+                        TextColor="Gray"
+                        HorizontalTextAlignment="Center" />
 
-                        <Button
-                            Text="Excluir"
-                            CommandParameter="{Binding .}"
-                            Clicked="ExcluirParticipante_Clicked"/>
+                </VerticalStackLayout>
 
-                    </HorizontalStackLayout>
+            </CollectionView.EmptyView>
 
-                </Frame>
+            <CollectionView.ItemTemplate>
 
-            </DataTemplate>
+                <DataTemplate>
 
-        </CollectionView.ItemTemplate>
+                    <Border
+                        Margin="0,4"
+                        Padding="12"
+                        Stroke="#E0E0E0"
+                        StrokeThickness="1"
+                        BackgroundColor="#F8F8F8">
 
-    </CollectionView>
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="6" />
+                        </Border.StrokeShape>
+
+                        <VisualStateManager.VisualStateGroups>
+
+                            <VisualStateGroup Name="CommonStates">
+
+                                <VisualState Name="Normal">
+
+                                    <VisualState.Setters>
+
+                                        <Setter
+                                            Property="BackgroundColor"
+                                            Value="#F8F8F8" />
+
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="#E0E0E0" />
+
+                                    </VisualState.Setters>
+
+                                </VisualState>
+
+                                <VisualState Name="PointerOver">
+
+                                    <VisualState.Setters>
+
+                                        <Setter
+                                            Property="BackgroundColor"
+                                            Value="#EEE9FF" />
+
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="#5427D8" />
+
+                                    </VisualState.Setters>
+
+                                </VisualState>
+
+                            </VisualStateGroup>
+
+                        </VisualStateManager.VisualStateGroups>
+
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            ColumnSpacing="12">
+
+                            <VerticalStackLayout
+                                Grid.Column="0"
+                                Spacing="3"
+                                VerticalOptions="Center">
+
+                                <Label
+                                    Text="{Binding Nome}"
+                                    FontSize="16"
+                                    FontAttributes="Bold"
+                                    LineBreakMode="WordWrap" />
+
+                                <Label
+                                    Text="{Binding GrupoFormatado}"
+                                    FontSize="12"
+                                    TextColor="Gray" />
+
+                            </VerticalStackLayout>
+
+                            <HorizontalStackLayout
+                                Grid.Column="1"
+                                Spacing="8"
+                                VerticalOptions="Center">
+
+                                <Button
+                                    Text="Editar"
+                                    FontSize="12"
+                                    Padding="14,7"
+                                    CommandParameter="{Binding .}"
+                                    Clicked="EditarParticipante_Clicked" />
+
+                                <Button
+                                    Text="Definir Grupo"
+                                    FontSize="12"
+                                    Padding="14,7"
+                                    CommandParameter="{Binding .}"
+                                    Clicked="AlterarGrupoParticipante_Clicked" />
+
+                                <Button
+                                    Text="Ativar/Inativar"
+                                    FontSize="12"
+                                    Padding="14,7"
+                                    CommandParameter="{Binding .}"
+                                    Clicked="AlternarStatusParticipante_Clicked" />
+
+                                <Button
+                                    Text="Excluir"
+                                    FontSize="12"
+                                    Padding="14,7"
+                                    BackgroundColor="#C62828"
+                                    TextColor="White"
+                                    CommandParameter="{Binding .}"
+                                    Clicked="ExcluirParticipante_Clicked" />
+
+                            </HorizontalStackLayout>
+
+                        </Grid>
+
+                    </Border>
+
+                </DataTemplate>
+
+            </CollectionView.ItemTemplate>
+
+        </CollectionView>
+
+    </Grid>
 
 </ContentPage>
