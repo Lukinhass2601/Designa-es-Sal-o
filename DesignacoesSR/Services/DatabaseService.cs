@@ -31,6 +31,9 @@ public class DatabaseService
         _database.CreateTableAsync<Designacao>().Wait();
         _database.CreateTableAsync<ParticipanteParte>().Wait();
         _database.CreateTableAsync<ParteSemana>().Wait();
+        _database
+    .CreateTableAsync<DesignacaoParticipante>()
+    .Wait();
     }
 
     // PARTICIPANTES
@@ -677,4 +680,253 @@ public class DatabaseService
 
         return quantidadeAdicionada;
     }
+
+    public async Task<HashSet<int>>
+    GetParticipantesUsadosNosUltimosMesesAsync(
+        DateTime dataSemana,
+        int quantidadeMeses)
+    {
+        var dataFinal =
+            dataSemana.Date;
+
+        var dataInicial =
+            dataFinal.AddMonths(
+                -quantidadeMeses);
+
+        var designacoes =
+            await _database
+                .Table<Designacao>()
+                .Where(x =>
+                    x.DataSemana >= dataInicial &&
+                    x.DataSemana < dataFinal)
+                .ToListAsync();
+
+        var participantes =
+            await _database
+                .Table<Participante>()
+                .ToListAsync();
+
+        var participantesUsados =
+            new HashSet<int>();
+
+        foreach (var designacao in designacoes)
+        {
+            if (string.IsNullOrWhiteSpace(
+                    designacao.Participante))
+            {
+                continue;
+            }
+
+            var nomes =
+                designacao.Participante.Split(
+                    " e ",
+                    StringSplitOptions.RemoveEmptyEntries |
+                    StringSplitOptions.TrimEntries);
+
+            foreach (var nome in nomes)
+            {
+                var participante =
+                    participantes.FirstOrDefault(
+                        x =>
+                            NormalizarNomeParaComparacao(
+                                x.Nome) ==
+                            NormalizarNomeParaComparacao(
+                                nome));
+
+                if (participante != null)
+                {
+                    participantesUsados.Add(
+                        participante.Id);
+                }
+            }
+        }
+
+        return participantesUsados;
+    }
+
+    private static string
+    NormalizarNomeParaComparacao(
+        string? nome)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+            return string.Empty;
+
+        var nomeLimpo =
+            string.Join(
+                " ",
+                nome.Trim()
+                    .Split(
+                        ' ',
+                        StringSplitOptions.RemoveEmptyEntries));
+
+        var nomeDecomposto =
+            nomeLimpo
+                .ToUpperInvariant()
+                .Normalize(
+                    System.Text.NormalizationForm.FormD);
+
+        var caracteres =
+            nomeDecomposto
+                .Where(
+                    caractere =>
+                        System.Globalization
+                            .CharUnicodeInfo
+                            .GetUnicodeCategory(
+                                caractere) !=
+                        System.Globalization
+                            .UnicodeCategory
+                            .NonSpacingMark)
+                .ToArray();
+
+        return new string(caracteres)
+            .Normalize(
+                System.Text.NormalizationForm.FormC);
+    }
+    public async Task<List<Participante>>
+    OrdenarParticipantesPorRodizioAsync(
+        List<Participante> participantes,
+        int parteId)
+    {
+        var historico =
+            await _database
+                .Table<DesignacaoParticipante>()
+                .Where(x => x.ParteId == parteId)
+                .ToListAsync();
+
+        var candidatos =
+            participantes
+                .Select(
+                    participante =>
+                        new
+                        {
+                            Participante = participante,
+
+                            Quantidade = historico.Count(
+                                x =>
+                                    x.ParticipanteId ==
+                                    participante.Id),
+
+                            UltimaData = historico
+                                .Where(
+                                    x =>
+                                        x.ParticipanteId ==
+                                        participante.Id)
+                                .Select(x => x.DataSemana)
+                                .DefaultIfEmpty(DateTime.MinValue)
+                                .Max()
+                        })
+                .OrderBy(x => x.Quantidade)
+                .ThenBy(x => x.UltimaData)
+                .ThenBy(x => Guid.NewGuid())
+                .Select(x => x.Participante)
+                .ToList();
+
+        return candidatos;
+    }
+    public Task<int> SalvarDesignacaoParticipanteAsync(
+    DesignacaoParticipante registro)
+    {
+        registro.DataSemana =
+            registro.DataSemana.Date;
+
+        return _database.InsertAsync(
+            registro);
+    }
+    public async Task<int>
+    ExcluirDesignacoesParticipantesDaSemanaAsync(
+        DateTime dataSemana)
+    {
+        var inicio =
+            dataSemana.Date;
+
+        var fim =
+            inicio.AddDays(1);
+
+        var registros =
+            await _database
+                .Table<DesignacaoParticipante>()
+                .Where(x =>
+                    x.DataSemana >= inicio &&
+                    x.DataSemana < fim)
+                .ToListAsync();
+
+        var quantidadeExcluida =
+            0;
+
+        foreach (var registro in registros)
+        {
+            quantidadeExcluida +=
+                await _database.DeleteAsync(
+                    registro);
+        }
+
+        return quantidadeExcluida;
+    }
+    public async Task<List<ItemRelatorioSemana>>
+    GetItensRelatorioSemanaAsync(
+        DateTime dataSemana)
+    {
+        var partesSemana =
+            await GetPartesDaSemanaAsync(
+                dataSemana);
+
+        var designacoes =
+            await GetDesignacoesSemanaAsync(
+                dataSemana);
+
+        var resultado =
+            new List<ItemRelatorioSemana>();
+
+        foreach (var parteSemana in
+                 partesSemana.OrderBy(x => x.Numero))
+        {
+            var designacao =
+                designacoes.FirstOrDefault(
+                    x =>
+                        x.ParteSemanaId ==
+                        parteSemana.Id);
+
+            if (designacao == null)
+            {
+                designacao =
+                    designacoes.FirstOrDefault(
+                        x =>
+                            x.Numero ==
+                            parteSemana.Numero &&
+                            string.Equals(
+                                x.Parte,
+                                parteSemana.Titulo,
+                                StringComparison.OrdinalIgnoreCase));
+            }
+
+            resultado.Add(
+                new ItemRelatorioSemana
+                {
+                    Numero =
+                        parteSemana.Numero,
+
+                    ParteId =
+                        parteSemana.ParteId,
+
+                    ParteSemanaId =
+                        parteSemana.Id,
+
+                    Titulo =
+                        parteSemana.Titulo,
+
+                    Descricao =
+                        parteSemana.Descricao,
+
+                    DuracaoMinutos =
+                        parteSemana.DuracaoMinutos,
+
+                    Participante =
+                        designacao?.Participante
+                        ?? string.Empty
+                });
+        }
+
+        return resultado;
+    }
+
 }

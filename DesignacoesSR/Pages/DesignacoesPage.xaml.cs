@@ -7,11 +7,14 @@ public partial class DesignacoesPage : ContentPage
 {
     private readonly DatabaseService _database;
 
-    private List<DesignacaoResultado> _ultimoResultado = new();
+    private List<DesignacaoResultado> _ultimoResultado =
+        new();
 
-    public DesignacoesPage(DatabaseService database)
+    public DesignacoesPage(
+        DatabaseService database)
     {
         InitializeComponent();
+
         _database = database;
     }
 
@@ -20,13 +23,18 @@ public partial class DesignacoesPage : ContentPage
         base.OnAppearing();
 
         _ultimoResultado.Clear();
-        listaDesignacoes.ItemsSource = null;
-        btnSalvarPrograma.IsEnabled = false;
+
+        listaDesignacoes.ItemsSource =
+            null;
+
+        btnSalvarPrograma.IsEnabled =
+            false;
     }
 
     private DateTime ObterDataSelecionada()
     {
-        return dtSemana.Date ?? DateTime.Today;
+        return dtSemana.Date
+               ?? DateTime.Today;
     }
 
     private async void VisualizarDesignacoes_Clicked(
@@ -35,17 +43,21 @@ public partial class DesignacoesPage : ContentPage
     {
         try
         {
-            btnSalvarPrograma.IsEnabled = false;
-            listaDesignacoes.ItemsSource = null;
+            btnSalvarPrograma.IsEnabled =
+                false;
+
+            listaDesignacoes.ItemsSource =
+                null;
+
             _ultimoResultado.Clear();
 
-            var dataSemana = ObterDataSelecionada();
+            var dataSemana =
+                ObterDataSelecionada();
 
-            // Busca somente as partes cadastradas
-            // na programação da data selecionada.
             var partesSemana =
-                await _database.GetPartesDaSemanaAsync(
-                    dataSemana);
+                await _database
+                    .GetPartesDaSemanaAsync(
+                        dataSemana);
 
             if (partesSemana.Count == 0)
             {
@@ -53,7 +65,7 @@ public partial class DesignacoesPage : ContentPage
                     "Programação não encontrada",
                     $"Não existem partes cadastradas para " +
                     $"{dataSemana:dd/MM/yyyy}.\n\n" +
-                    "Cadastre as partes primeiro na aba Programação.",
+                    "Cadastre ou importe primeiro a programação.",
                     "OK");
 
                 return;
@@ -62,17 +74,20 @@ public partial class DesignacoesPage : ContentPage
             var resultado =
                 new List<DesignacaoResultado>();
 
-            // Impede que alguém seja usado duas vezes
-            // dentro da mesma visualização.
+            /*
+             * Impede que uma mesma pessoa seja usada
+             * novamente em outra parte da mesma semana.
+             */
             var participantesJaUsados =
                 new HashSet<int>();
 
-            foreach (var parteSemana
-                     in partesSemana.OrderBy(x => x.Numero))
+            foreach (var parteSemana in
+                     partesSemana.OrderBy(x => x.Numero))
             {
                 var parteBase =
-                    await _database.GetPartePorIdAsync(
-                        parteSemana.ParteId);
+                    await _database
+                        .GetPartePorIdAsync(
+                            parteSemana.ParteId);
 
                 if (parteBase == null)
                 {
@@ -84,28 +99,47 @@ public partial class DesignacoesPage : ContentPage
                     continue;
                 }
 
+                /*
+                 * Busca somente quem possui habilitação
+                 * para a parte base atual.
+                 */
                 var participantesHabilitados =
                     await _database
                         .GetParticipantesPorParteAsync(
                             parteBase.Id);
 
+                /*
+                 * Aplica as regras permanentes:
+                 *
+                 * 1. Precisa estar ativo.
+                 * 2. Precisa possuir o sexo permitido.
+                 * 3. Não pode ter sido escolhido em outra
+                 *    parte desta mesma programação.
+                 */
                 participantesHabilitados =
-    participantesHabilitados
-        .Where(x => x.Ativo)
-        .Where(x =>
-            string.Equals(
-                x.Sexo,
-                parteBase.SexoPermitido,
-                StringComparison.OrdinalIgnoreCase))
-        .Where(x =>
-            !participantesJaUsados.Contains(
-                x.Id))
-        .ToList();
+                    participantesHabilitados
+                        .Where(x => x.Ativo)
+                        .Where(x =>
+                            string.Equals(
+                                x.Sexo,
+                                parteBase.SexoPermitido,
+                                StringComparison.OrdinalIgnoreCase))
+                        .Where(x =>
+                            !participantesJaUsados.Contains(
+                                x.Id))
+                        .ToList();
 
+                /*
+                 * Ordena pelo rodízio específico da parte.
+                 *
+                 * Primeiro aparecem os participantes que
+                 * fizeram menos vezes essa parte.
+                 */
                 participantesHabilitados =
-                    await OrdenarPorRodizioAsync(
-                        participantesHabilitados,
-                        parteBase.Id);
+                    await _database
+                        .OrdenarParticipantesPorRodizioAsync(
+                            participantesHabilitados,
+                            parteBase.Id);
 
                 var quantidadeNecessaria =
                     parteBase.QuantidadeParticipantes <= 1
@@ -131,7 +165,8 @@ public partial class DesignacoesPage : ContentPage
                 var participante1 =
                     participantesHabilitados[0];
 
-                Participante? participante2 = null;
+                Participante? participante2 =
+                    null;
 
                 if (quantidadeNecessaria == 2)
                 {
@@ -140,33 +175,39 @@ public partial class DesignacoesPage : ContentPage
                 }
 
                 resultado.Add(
-    new DesignacaoResultado
-    {
-        ParteSemanaId =
-            parteSemana.Id,
+                    new DesignacaoResultado
+                    {
+                        ParteSemanaId =
+                            parteSemana.Id,
 
-        ParteId =
-            parteBase.Id,
+                        ParteId =
+                            parteBase.Id,
 
-        Numero =
-            parteSemana.Numero,
+                        Numero =
+                            parteSemana.Numero,
 
-        Parte =
-            parteSemana.Titulo,
+                        Parte =
+                            parteSemana.Titulo,
 
-        Descricao =
-            parteSemana.Descricao,
+                        Descricao =
+                            parteSemana.Descricao,
 
-        DuracaoMinutos =
-            parteSemana.DuracaoMinutos,
+                        DuracaoMinutos =
+                            parteSemana.DuracaoMinutos,
 
-        Participante1 =
-            participante1.Nome,
+                        Participante1Id =
+                            participante1.Id,
 
-        Participante2 =
-            participante2?.Nome
-            ?? string.Empty
-    });
+                        Participante1 =
+                            participante1.Nome,
+
+                        Participante2Id =
+                            participante2?.Id ?? 0,
+
+                        Participante2 =
+                            participante2?.Nome
+                            ?? string.Empty
+                    });
 
                 participantesJaUsados.Add(
                     participante1.Id);
@@ -178,15 +219,19 @@ public partial class DesignacoesPage : ContentPage
                 }
             }
 
-            _ultimoResultado = resultado;
+            _ultimoResultado =
+                resultado;
 
-            listaDesignacoes.ItemsSource = resultado;
+            listaDesignacoes.ItemsSource =
+                resultado;
 
             var possuiErro =
-                resultado.Any(ResultadoPossuiErro);
+                resultado.Any(
+                    ResultadoPossuiErro);
 
             btnSalvarPrograma.IsEnabled =
-                resultado.Count > 0 && !possuiErro;
+                resultado.Count > 0 &&
+                !possuiErro;
 
             if (possuiErro)
             {
@@ -194,33 +239,36 @@ public partial class DesignacoesPage : ContentPage
                     "Programa incompleto",
                     "Algumas partes não possuem participantes " +
                     "habilitados suficientes.\n\n" +
-                    "Confira o sexo, a quantidade de pessoas e " +
-                    "as habilitações.",
+                    "Confira as habilitações, o sexo permitido " +
+                    "e a quantidade de participantes.",
                     "OK");
             }
         }
         catch (Exception ex)
         {
-            btnSalvarPrograma.IsEnabled = false;
+            btnSalvarPrograma.IsEnabled =
+                false;
 
             await DisplayAlert(
                 "Erro",
-                "Não foi possível visualizar as designações." +
+                "Não foi possível gerar as designações." +
                 $"\n\n{ex.Message}",
                 "OK");
         }
     }
 
-    private static DesignacaoResultado CriarResultadoComAviso(
-        ParteSemana parteSemana,
-        string aviso)
+    private static DesignacaoResultado
+        CriarResultadoComAviso(
+            ParteSemana parteSemana,
+            string aviso)
     {
         return new DesignacaoResultado
         {
             ParteSemanaId =
                 parteSemana.Id,
 
-            ParteId = 0,
+            ParteId =
+                parteSemana.ParteId,
 
             Numero =
                 parteSemana.Numero,
@@ -234,8 +282,14 @@ public partial class DesignacoesPage : ContentPage
             DuracaoMinutos =
                 parteSemana.DuracaoMinutos,
 
+            Participante1Id =
+                0,
+
             Participante1 =
                 aviso,
+
+            Participante2Id =
+                0,
 
             Participante2 =
                 string.Empty
@@ -245,19 +299,25 @@ public partial class DesignacoesPage : ContentPage
     private static bool ResultadoPossuiErro(
         DesignacaoResultado item)
     {
-        return item.Participante1 ==
-                   "SEM HABILITADO" ||
+        return string.Equals(
+                   item.Participante1,
+                   "SEM HABILITADO",
+                   StringComparison.OrdinalIgnoreCase) ||
 
-               item.Participante1 ==
-                   "FALTAM PARTICIPANTES" ||
+               string.Equals(
+                   item.Participante1,
+                   "FALTAM PARTICIPANTES",
+                   StringComparison.OrdinalIgnoreCase) ||
 
-               item.Participante1 ==
-                   "PARTE BASE NÃO ENCONTRADA";
+               string.Equals(
+                   item.Participante1,
+                   "PARTE BASE NÃO ENCONTRADA",
+                   StringComparison.OrdinalIgnoreCase);
     }
 
     private async void SalvarPrograma_Clicked(
-    object sender,
-    EventArgs e)
+        object sender,
+        EventArgs e)
     {
         if (_ultimoResultado.Count == 0)
         {
@@ -269,22 +329,25 @@ public partial class DesignacoesPage : ContentPage
             return;
         }
 
-        if (_ultimoResultado.Any(ResultadoPossuiErro))
+        if (_ultimoResultado.Any(
+                ResultadoPossuiErro))
         {
             await DisplayAlert(
                 "Programa incompleto",
                 "Não é possível salvar porque existem partes " +
-                "sem participantes habilitados suficientes.",
+                "sem participantes suficientes.",
                 "OK");
 
             return;
         }
 
-        var dataSemana = ObterDataSelecionada();
+        var dataSemana =
+            ObterDataSelecionada();
 
         var programaJaExiste =
-            await _database.ExisteProgramaNaSemanaAsync(
-                dataSemana);
+            await _database
+                .ExisteProgramaNaSemanaAsync(
+                    dataSemana);
 
         if (programaJaExiste)
         {
@@ -299,10 +362,6 @@ public partial class DesignacoesPage : ContentPage
 
             if (!substituir)
                 return;
-
-            await _database
-                .ExcluirDesignacoesDaSemanaAsync(
-                    dataSemana);
         }
         else
         {
@@ -320,7 +379,23 @@ public partial class DesignacoesPage : ContentPage
 
         try
         {
-            btnSalvarPrograma.IsEnabled = false;
+            btnSalvarPrograma.IsEnabled =
+                false;
+
+            if (programaJaExiste)
+            {
+                /*
+                 * Remove o programa antigo e também os
+                 * registros antigos do rodízio.
+                 */
+                await _database
+                    .ExcluirDesignacoesDaSemanaAsync(
+                        dataSemana);
+
+                await _database
+                    .ExcluirDesignacoesParticipantesDaSemanaAsync(
+                        dataSemana);
+            }
 
             foreach (var item in _ultimoResultado)
             {
@@ -331,21 +406,86 @@ public partial class DesignacoesPage : ContentPage
                         : $"{item.Participante1} e " +
                           $"{item.Participante2}";
 
-                await _database.SalvarDesignacaoAsync(
-    new Designacao
-    {
-        DataSemana =
-            dataSemana.Date,
+                /*
+                 * Salva o registro que será mostrado
+                 * no Histórico.
+                 */
+                await _database
+                    .SalvarDesignacaoAsync(
+                        new Designacao
+                        {
+                            DataSemana =
+        dataSemana.Date,
 
-        ParteId =
-            item.ParteId,
+                            ParteId =
+        item.ParteId,
 
-        Parte =
-            item.Parte,
+                            ParteSemanaId =
+        item.ParteSemanaId,
 
-        Participante =
-            nomesParticipantes
-    });
+                            Numero =
+        item.Numero,
+
+                            Parte =
+        item.Parte,
+
+                            Participante =
+        nomesParticipantes
+                        });
+
+                /*
+                 * Salva o primeiro participante
+                 * individualmente no rodízio.
+                 */
+                if (item.Participante1Id > 0)
+                {
+                    await _database
+                        .SalvarDesignacaoParticipanteAsync(
+                            new DesignacaoParticipante
+                            {
+                                ParticipanteId =
+                                    item.Participante1Id,
+
+                                ParteId =
+                                    item.ParteId,
+
+                                ParteSemanaId =
+                                    item.ParteSemanaId,
+
+                                DataSemana =
+                                    dataSemana.Date,
+
+                                Posicao =
+                                    1
+                            });
+                }
+
+                /*
+                 * Se a parte tiver duas pessoas,
+                 * salva também o segundo participante.
+                 */
+                if (item.Participante2Id > 0)
+                {
+                    await _database
+                        .SalvarDesignacaoParticipanteAsync(
+                            new DesignacaoParticipante
+                            {
+                                ParticipanteId =
+                                    item.Participante2Id,
+
+                                ParteId =
+                                    item.ParteId,
+
+                                ParteSemanaId =
+                                    item.ParteSemanaId,
+
+                                DataSemana =
+                                    dataSemana.Date,
+
+                                Posicao =
+                                    2
+                            });
+                }
 
                 await AtualizarUltimaParticipacaoAsync(
                     item.Participante1,
@@ -373,12 +513,17 @@ public partial class DesignacoesPage : ContentPage
                 "OK");
 
             _ultimoResultado.Clear();
-            listaDesignacoes.ItemsSource = null;
-            btnSalvarPrograma.IsEnabled = false;
+
+            listaDesignacoes.ItemsSource =
+                null;
+
+            btnSalvarPrograma.IsEnabled =
+                false;
         }
         catch (Exception ex)
         {
-            btnSalvarPrograma.IsEnabled = true;
+            btnSalvarPrograma.IsEnabled =
+                true;
 
             await DisplayAlert(
                 "Erro",
@@ -388,60 +533,30 @@ public partial class DesignacoesPage : ContentPage
         }
     }
 
-    private async Task AtualizarUltimaParticipacaoAsync(
-        string nomeParticipante,
-        DateTime dataSemana)
+    private async Task
+        AtualizarUltimaParticipacaoAsync(
+            string nomeParticipante,
+            DateTime dataSemana)
     {
-        if (string.IsNullOrWhiteSpace(nomeParticipante))
+        if (string.IsNullOrWhiteSpace(
+                nomeParticipante))
+        {
             return;
+        }
 
         var participante =
-            await _database.GetParticipantePorNomeAsync(
-                nomeParticipante);
+            await _database
+                .GetParticipantePorNomeAsync(
+                    nomeParticipante);
 
         if (participante == null)
             return;
 
         participante.UltimaParticipacao =
-            dataSemana;
+            dataSemana.Date;
 
-        await _database.AtualizarParticipanteAsync(
-            participante);
-    }
-
-    private async Task<List<Participante>>
-    OrdenarPorRodizioAsync(
-        List<Participante> participantes,
-        int parteId)
-    {
-        var candidatos =
-            new List<(Participante Participante, int Quantidade)>();
-
-        foreach (var participante in participantes)
-        {
-            var quantidade =
-                await _database
-                    .GetQuantidadeDesignacoesPorParteAsync(
-                        parteId,
-                        participante.Nome);
-
-            candidatos.Add(
-                (participante, quantidade));
-        }
-
-        if (candidatos.Count == 0)
-        {
-            return new List<Participante>();
-        }
-
-        var menorQuantidade =
-            candidatos.Min(x => x.Quantidade);
-
-        return candidatos
-            .Where(x =>
-                x.Quantidade == menorQuantidade)
-            .OrderBy(x => Guid.NewGuid())
-            .Select(x => x.Participante)
-            .ToList();
+        await _database
+            .AtualizarParticipanteAsync(
+                participante);
     }
 }

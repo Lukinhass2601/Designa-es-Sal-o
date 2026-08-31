@@ -50,12 +50,31 @@
             FontSize="18"
             FontAttributes="Bold" />
 
-        <Button
-            Grid.Row="3"
-            x:Name="btnExcluirSemana"
-            Text="Excluir Semana Selecionada"
-            Clicked="ExcluirSemana_Clicked"
-            IsEnabled="False" />
+        <Grid
+    Grid.Row="3"
+    ColumnDefinitions="*,*"
+    ColumnSpacing="10">
+
+            <Button
+        Grid.Column="0"
+        x:Name="btnGerarRelatorio"
+        Text="Gerar Relatório Excel"
+        Clicked="GerarRelatorio_Clicked"
+        IsEnabled="False"
+        BackgroundColor="#187A38"
+        TextColor="White"
+        FontAttributes="Bold" />
+
+            <Button
+        Grid.Column="1"
+        x:Name="btnExcluirSemana"
+        Text="Excluir Semana Selecionada"
+        Clicked="ExcluirSemana_Clicked"
+        IsEnabled="False"
+        BackgroundColor="#C62828"
+        TextColor="White" />
+
+        </Grid>
 
         <CollectionView
             Grid.Row="4"

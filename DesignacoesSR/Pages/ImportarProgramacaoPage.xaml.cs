@@ -208,44 +208,47 @@ public partial class ImportarProgramacaoPage : ContentPage
             btnSalvarProgramacao.IsEnabled = false;
 
             var novasPartes =
-                partesSelecionadas
-                    .Select(
-                        item =>
-                            new ParteSemana
-                            {
-                                ParteId =
-                                    item.ParteBaseId,
+    partesSelecionadas
+        .Select(
+            item =>
+                new ParteSemana
+                {
+                    ParteId =
+                        item.ParteBaseId,
 
-                                DataSemana =
-                                    dataSemana.Date,
+                    DataSemana =
+                        dataSemana.Date,
 
-                                Numero =
-                                    item.Numero,
+                    Numero =
+                        item.Numero,
 
-                                Titulo =
-                                    item.TituloOriginal,
+                    Titulo =
+                        item.TituloOriginal,
 
-                                Descricao =
-                                    item.Descricao,
+                    Descricao =
+                        item.Descricao,
 
-                                DuracaoMinutos =
-                                    item.DuracaoMinutos,
+                    DuracaoMinutos =
+                        item.DuracaoMinutos,
 
-                                UrlOrigem =
-                                    item.UrlOrigem
-                            })
+                    UrlOrigem =
+                        item.UrlOrigem
+                })
+        .ToList();
+
+            await AdicionarPartesFixasAsync(
+                novasPartes,
+                dataSemana);
+
+            novasPartes =
+                novasPartes
+                    .OrderBy(x => x.Numero)
                     .ToList();
 
             await _database
                 .SubstituirPartesDaSemanaAsync(
                     dataSemana,
                     novasPartes);
-
-            await DisplayAlert(
-                "Sucesso",
-                $"Programação de {dataSemana:dd/MM/yyyy} " +
-                "salva com sucesso.",
-                "OK");
 
             LimparPrevia();
         }
@@ -489,5 +492,117 @@ public partial class ImportarProgramacaoPage : ContentPage
             partesSelecionadas.Count > 0 &&
             partesSelecionadas.All(
                 x => x.ParteBaseEncontrada);
+    }
+
+    private async Task AdicionarPartesFixasAsync(
+    List<ParteSemana> partesSemana,
+    DateTime dataSemana)
+    {
+        var maiorNumero =
+            partesSemana.Count > 0
+                ? partesSemana.Max(x => x.Numero)
+                : 0;
+
+        var partePresidente =
+            await _database
+                .GetPartePorNomeNormalizadoAsync(
+                    "Presidente");
+
+        if (partePresidente == null)
+        {
+            throw new InvalidOperationException(
+                "A parte base 'Presidente' não foi encontrada. " +
+                "Cadastre essa parte antes de importar a programação.");
+        }
+
+        var parteOracao =
+            await _database
+                .GetPartePorNomeNormalizadoAsync(
+                    "Oração");
+
+        if (parteOracao == null)
+        {
+            throw new InvalidOperationException(
+                "A parte base 'Oração' não foi encontrada. " +
+                "Cadastre essa parte antes de importar a programação.");
+        }
+
+        var presidenteJaExiste =
+            partesSemana.Any(
+                x =>
+                    x.ParteId == partePresidente.Id ||
+                    string.Equals(
+                        x.Titulo,
+                        "Presidente",
+                        StringComparison.OrdinalIgnoreCase));
+
+        if (!presidenteJaExiste)
+        {
+            maiorNumero++;
+
+            partesSemana.Add(
+                new ParteSemana
+                {
+                    ParteId =
+                        partePresidente.Id,
+
+                    DataSemana =
+                        dataSemana.Date,
+
+                    Numero =
+                        maiorNumero,
+
+                    Titulo =
+                        "Presidente",
+
+                    Descricao =
+                        "Presidente da reunião",
+
+                    DuracaoMinutos =
+                        0,
+
+                    UrlOrigem =
+                        string.Empty
+                });
+        }
+
+        var oracaoJaExiste =
+            partesSemana.Any(
+                x =>
+                    x.ParteId == parteOracao.Id ||
+                    string.Equals(
+                        x.Titulo,
+                        "Oração",
+                        StringComparison.OrdinalIgnoreCase));
+
+        if (!oracaoJaExiste)
+        {
+            maiorNumero++;
+
+            partesSemana.Add(
+                new ParteSemana
+                {
+                    ParteId =
+                        parteOracao.Id,
+
+                    DataSemana =
+                        dataSemana.Date,
+
+                    Numero =
+                        maiorNumero,
+
+                    Titulo =
+                        "Oração",
+
+                    Descricao =
+                        "Oração da reunião",
+
+                    DuracaoMinutos =
+                        1,
+
+                    UrlOrigem =
+                        string.Empty
+                });
+        }
     }
 }

@@ -1,6 +1,8 @@
 ﻿using DesignacoesSR.Pages;
 using DesignacoesSR.Services;
 using Microsoft.Extensions.Logging;
+using CommunityToolkit.Maui;
+using DesignacoesSR.Services;
 
 namespace DesignacoesSR
 {
@@ -11,11 +13,8 @@ namespace DesignacoesSR
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
-                .ConfigureFonts(fonts =>
-                {
-                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-                });
+                .UseMauiCommunityToolkit();
+
 
 #if DEBUG
     		builder.Logging.AddDebug();
@@ -31,6 +30,7 @@ namespace DesignacoesSR
             builder.Services.AddSingleton<ParteSemanaPage>();
             builder.Services.AddSingleton<ImportarProgramacaoPage>();
             builder.Services.AddSingleton<HttpClient>();
+            builder.Services.AddSingleton<RelatorioExcelService>();
 
             builder.Services.AddSingleton<JwProgramacaoService>();
 
