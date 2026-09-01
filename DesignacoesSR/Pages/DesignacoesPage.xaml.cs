@@ -135,11 +135,27 @@ public partial class DesignacoesPage : ContentPage
                  * Primeiro aparecem os participantes que
                  * fizeram menos vezes essa parte.
                  */
-                participantesHabilitados =
-                    await _database
-                        .OrdenarParticipantesPorRodizioAsync(
-                            participantesHabilitados,
-                            parteBase.Id);
+                var parteFeminina =
+    string.Equals(
+        parteBase.SexoPermitido,
+        "F",
+        StringComparison.OrdinalIgnoreCase);
+
+                if (parteFeminina)
+                {
+                    participantesHabilitados =
+                        await _database
+                            .OrdenarMulheresPorRodizioGeralAsync(
+                                participantesHabilitados);
+                }
+                else
+                {
+                    participantesHabilitados =
+                        await _database
+                            .OrdenarParticipantesPorRodizioAsync(
+                                participantesHabilitados,
+                                parteBase.Id);
+                }
 
                 var quantidadeNecessaria =
                     parteBase.QuantidadeParticipantes <= 1

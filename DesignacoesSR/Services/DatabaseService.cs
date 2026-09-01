@@ -929,4 +929,55 @@ public class DatabaseService
         return resultado;
     }
 
+
+    public async Task<List<Participante>>
+    OrdenarMulheresPorRodizioGeralAsync(
+        List<Participante> participantes)
+    {
+        if (participantes.Count == 0)
+        {
+            return new List<Participante>();
+        }
+
+        var historico =
+            await _database
+                .Table<DesignacaoParticipante>()
+                .ToListAsync();
+
+        var participantesOrdenadas =
+            participantes
+                .Select(
+                    participante =>
+                        new
+                        {
+                            Participante =
+                                participante,
+
+                            Quantidade =
+                                historico.Count(
+                                    registro =>
+                                        registro.ParticipanteId ==
+                                        participante.Id),
+
+                            UltimaData =
+                                historico
+                                    .Where(
+                                        registro =>
+                                            registro.ParticipanteId ==
+                                            participante.Id)
+                                    .Select(
+                                        registro =>
+                                            registro.DataSemana)
+                                    .DefaultIfEmpty(
+                                        DateTime.MinValue)
+                                    .Max()
+                        })
+                .OrderBy(x => x.Quantidade)
+                .ThenBy(x => x.UltimaData)
+                .ThenBy(x => Guid.NewGuid())
+                .Select(x => x.Participante)
+                .ToList();
+
+        return participantesOrdenadas;
+    }
 }
