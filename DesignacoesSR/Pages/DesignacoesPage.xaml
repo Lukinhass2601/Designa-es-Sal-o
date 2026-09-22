@@ -118,15 +118,34 @@
                                 BackgroundColor="LightGray"
                                 Margin="0,5" />
 
-                            <Label
-                                Text="{Binding Participante1}"
-                                FontSize="16"
-                                FontAttributes="Bold" />
+                            <Button
+    Text="{Binding Participante1}"
+    FontSize="15"
+    FontAttributes="Bold"
+    HorizontalOptions="Fill"
+    BackgroundColor="#EEE9FF"
+    TextColor="#2D176B"
+    BorderColor="#7455D9"
+    BorderWidth="1"
+    CornerRadius="6"
+    Padding="12,8"
+    CommandParameter="{Binding .}"
+    Clicked="TrocarParticipante1_Clicked" />
 
-                            <Label
-                                Text="{Binding Participante2}"
-                                FontSize="16"
-                                FontAttributes="Bold" />
+                            <Button
+    Text="{Binding Participante2}"
+    FontSize="15"
+    FontAttributes="Bold"
+    HorizontalOptions="Fill"
+    BackgroundColor="#EEE9FF"
+    TextColor="#2D176B"
+    BorderColor="#7455D9"
+    BorderWidth="1"
+    CornerRadius="6"
+    Padding="12,8"
+    IsVisible="{Binding TemParticipante2}"
+    CommandParameter="{Binding .}"
+    Clicked="TrocarParticipante2_Clicked" />
 
                         </VerticalStackLayout>
 

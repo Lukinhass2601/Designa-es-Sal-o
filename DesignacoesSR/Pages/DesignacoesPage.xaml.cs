@@ -575,4 +575,224 @@ public partial class DesignacoesPage : ContentPage
             .AtualizarParticipanteAsync(
                 participante);
     }
+
+    private async void TrocarParticipante1_Clicked(
+    object sender,
+    EventArgs e)
+    {
+        if (sender is not Button button ||
+            button.CommandParameter
+                is not DesignacaoResultado item)
+        {
+            return;
+        }
+
+        await TrocarParticipanteAsync(
+            item,
+            1);
+    }
+
+    private async void TrocarParticipante2_Clicked(
+    object sender,
+    EventArgs e)
+    {
+        if (sender is not Button button ||
+            button.CommandParameter
+                is not DesignacaoResultado item)
+        {
+            return;
+        }
+
+        await TrocarParticipanteAsync(
+            item,
+            2);
+    }
+
+    private async Task TrocarParticipanteAsync(
+    DesignacaoResultado item,
+    int posicao)
+    {
+        var parteBase =
+            await _database.GetPartePorIdAsync(
+                item.ParteId);
+
+        if (parteBase == null)
+        {
+            await DisplayAlert(
+                "Erro",
+                "A parte base não foi encontrada.",
+                "OK");
+
+            return;
+        }
+
+        var participantesHabilitados =
+            await _database
+                .GetParticipantesPorParteAsync(
+                    parteBase.Id);
+
+        var participanteAtualId =
+            posicao == 1
+                ? item.Participante1Id
+                : item.Participante2Id;
+
+        var idsJaUtilizados =
+            ObterParticipantesUsadosNaVisualizacao(
+                item,
+                posicao);
+
+        participantesHabilitados =
+            participantesHabilitados
+                .Where(x => x.Ativo)
+                .Where(x =>
+                    string.Equals(
+                        x.Sexo,
+                        parteBase.SexoPermitido,
+                        StringComparison.OrdinalIgnoreCase))
+                .Where(x =>
+                    x.Id != participanteAtualId)
+                .Where(x =>
+                    !idsJaUtilizados.Contains(x.Id))
+                .ToList();
+
+        if (participantesHabilitados.Count == 0)
+        {
+            await DisplayAlert(
+                "Nenhum substituto disponível",
+                "Não existem outros participantes ativos " +
+                "e habilitados disponíveis para essa parte.",
+                "OK");
+
+            return;
+        }
+
+        var parteFeminina =
+            string.Equals(
+                parteBase.SexoPermitido,
+                "F",
+                StringComparison.OrdinalIgnoreCase);
+
+        if (parteFeminina)
+        {
+            participantesHabilitados =
+                await _database
+                    .OrdenarMulheresPorRodizioGeralAsync(
+                        participantesHabilitados);
+        }
+        else
+        {
+            participantesHabilitados =
+                await _database
+                    .OrdenarParticipantesPorRodizioAsync(
+                        participantesHabilitados,
+                        parteBase.Id);
+        }
+
+        var nomes =
+            participantesHabilitados
+                .Select(x => x.Nome)
+                .ToArray();
+
+        var nomeEscolhido =
+            await DisplayActionSheet(
+                "Escolha o substituto",
+                "Cancelar",
+                null,
+                nomes);
+
+        if (string.IsNullOrWhiteSpace(
+                nomeEscolhido) ||
+            nomeEscolhido == "Cancelar")
+        {
+            return;
+        }
+
+        var novoParticipante =
+            participantesHabilitados
+                .FirstOrDefault(
+                    x => string.Equals(
+                        x.Nome,
+                        nomeEscolhido,
+                        StringComparison.OrdinalIgnoreCase));
+
+        if (novoParticipante == null)
+        {
+            await DisplayAlert(
+                "Erro",
+                "O participante selecionado não foi encontrado.",
+                "OK");
+
+            return;
+        }
+
+        if (posicao == 1)
+        {
+            item.Participante1Id =
+                novoParticipante.Id;
+
+            item.Participante1 =
+                novoParticipante.Nome;
+        }
+        else
+        {
+            item.Participante2Id =
+                novoParticipante.Id;
+
+            item.Participante2 =
+                novoParticipante.Nome;
+        }
+
+        await DisplayAlert(
+            "Participante alterado",
+            $"{novoParticipante.Nome} foi selecionado " +
+            $"para a parte '{item.Parte}'.",
+            "OK");
+    }
+
+    private HashSet<int>
+    ObterParticipantesUsadosNaVisualizacao(
+        DesignacaoResultado itemAtual,
+        int posicaoAtual)
+    {
+        var idsUtilizados =
+            new HashSet<int>();
+
+        foreach (var item in _ultimoResultado)
+        {
+            if (ReferenceEquals(
+                    item,
+                    itemAtual))
+            {
+                if (posicaoAtual == 1 &&
+                    item.Participante2Id > 0)
+                {
+                    idsUtilizados.Add(
+                        item.Participante2Id);
+                }
+
+                if (posicaoAtual == 2 &&
+                    item.Participante1Id > 0)
+                {
+                    idsUtilizados.Add(
+                        item.Participante1Id);
+                }
+
+                continue;
+            }
+
+            if (item.Participante1Id > 0)
+            {
+                idsUtilizados.Add(
+                    item.Participante1Id);
+            }
+
+            if (item.Participante2Id > 0)
+            {
+                idsUtilizados.Add(
+                    item.Participante2Id);
+            }
+        }
+
+        return idsUtilizados;
+    }
 }
