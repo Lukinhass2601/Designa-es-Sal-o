@@ -636,23 +636,19 @@ public partial class DesignacoesPage : ContentPage
                 ? item.Participante1Id
                 : item.Participante2Id;
 
-        var idsJaUtilizados =
-            ObterParticipantesUsadosNaVisualizacao(
-                item,
-                posicao);
+        var outroParticipanteId =
+            posicao == 1
+                ? item.Participante2Id
+                : item.Participante1Id;
 
         participantesHabilitados =
             participantesHabilitados
                 .Where(x => x.Ativo)
                 .Where(x =>
-                    string.Equals(
-                        x.Sexo,
-                        parteBase.SexoPermitido,
-                        StringComparison.OrdinalIgnoreCase))
-                .Where(x =>
                     x.Id != participanteAtualId)
                 .Where(x =>
-                    !idsJaUtilizados.Contains(x.Id))
+                    x.Id != outroParticipanteId)
+                .OrderBy(x => x.Nome)
                 .ToList();
 
         if (participantesHabilitados.Count == 0)
@@ -660,32 +656,10 @@ public partial class DesignacoesPage : ContentPage
             await DisplayAlert(
                 "Nenhum substituto disponível",
                 "Não existem outros participantes ativos " +
-                "e habilitados disponíveis para essa parte.",
+                "e habilitados para esta parte.",
                 "OK");
 
             return;
-        }
-
-        var parteFeminina =
-            string.Equals(
-                parteBase.SexoPermitido,
-                "F",
-                StringComparison.OrdinalIgnoreCase);
-
-        if (parteFeminina)
-        {
-            participantesHabilitados =
-                await _database
-                    .OrdenarMulheresPorRodizioGeralAsync(
-                        participantesHabilitados);
-        }
-        else
-        {
-            participantesHabilitados =
-                await _database
-                    .OrdenarParticipantesPorRodizioAsync(
-                        participantesHabilitados,
-                        parteBase.Id);
         }
 
         var nomes =
@@ -725,6 +699,11 @@ public partial class DesignacoesPage : ContentPage
             return;
         }
 
+        var nomeAnterior =
+            posicao == 1
+                ? item.Participante1
+                : item.Participante2;
+
         if (posicao == 1)
         {
             item.Participante1Id =
@@ -744,55 +723,11 @@ public partial class DesignacoesPage : ContentPage
 
         await DisplayAlert(
             "Participante alterado",
-            $"{novoParticipante.Nome} foi selecionado " +
-            $"para a parte '{item.Parte}'.",
+            $"{nomeAnterior} foi substituído por " +
+            $"{novoParticipante.Nome} na parte " +
+            $"'{item.Parte}'.",
             "OK");
     }
 
-    private HashSet<int>
-    ObterParticipantesUsadosNaVisualizacao(
-        DesignacaoResultado itemAtual,
-        int posicaoAtual)
-    {
-        var idsUtilizados =
-            new HashSet<int>();
 
-        foreach (var item in _ultimoResultado)
-        {
-            if (ReferenceEquals(
-                    item,
-                    itemAtual))
-            {
-                if (posicaoAtual == 1 &&
-                    item.Participante2Id > 0)
-                {
-                    idsUtilizados.Add(
-                        item.Participante2Id);
-                }
-
-                if (posicaoAtual == 2 &&
-                    item.Participante1Id > 0)
-                {
-                    idsUtilizados.Add(
-                        item.Participante1Id);
-                }
-
-                continue;
-            }
-
-            if (item.Participante1Id > 0)
-            {
-                idsUtilizados.Add(
-                    item.Participante1Id);
-            }
-
-            if (item.Participante2Id > 0)
-            {
-                idsUtilizados.Add(
-                    item.Participante2Id);
-            }
-        }
-
-        return idsUtilizados;
-    }
 }
